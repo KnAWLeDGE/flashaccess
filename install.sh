@@ -70,6 +70,14 @@ if ! id "$SERVICE_USER" &>/dev/null; then
     info "Created system user: ${SERVICE_USER}"
 fi
 
+# ── sudoers rule for ufw ───────────────────────────────────────
+SUDOERS_FILE="/etc/sudoers.d/flashaccess-ufw"
+if [[ ! -f "$SUDOERS_FILE" ]]; then
+    echo "flashaccess ALL=(root) NOPASSWD: /usr/sbin/ufw" > "$SUDOERS_FILE"
+    chmod 440 "$SUDOERS_FILE"
+    info "sudoers rule written: ${SUDOERS_FILE}"
+fi
+
 # ── Data directory ─────────────────────────────────────────────
 mkdir -p "$DATA_DIR"
 chown "${SERVICE_USER}:${SERVICE_USER}" "$DATA_DIR"
@@ -126,9 +134,11 @@ fi
 echo
 info "Installation complete."
 echo -e "${G}Next steps:${N}"
-echo "  1. Run the configuration wizard (as ${SERVICE_USER} or root):"
+echo "  1. Run the configuration wizard:"
 echo "       flashaccess connect"
-echo "  2. Start and enable the service:"
+echo "  2. Fix file ownership (connect runs as root; service runs as ${SERVICE_USER}):"
+echo "       chown -R ${SERVICE_USER}:${SERVICE_USER} ${DATA_DIR}"
+echo "  3. Start and enable the service:"
 echo "       systemctl enable --now flashaccess"
-echo "  3. Configure nginx (see deploy/nginx.conf) and point your domain here."
+echo "  4. Configure nginx (see deploy/nginx.conf) and point your domain here."
 echo

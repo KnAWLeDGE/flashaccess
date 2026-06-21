@@ -45,7 +45,10 @@ func (u *UFW) bin() string {
 }
 
 func run(bin string, args ...string) error {
-	cmd := exec.Command(bin, args...)
+	// Run via sudo so the flashaccess service user can manage ufw rules
+	// without running the entire daemon as root.
+	// Requires: /etc/sudoers.d/flashaccess-ufw granting NOPASSWD: /usr/sbin/ufw
+	cmd := exec.Command("sudo", append([]string{bin}, args...)...)
 	var out bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &out, &out
 	if err := cmd.Run(); err != nil {
