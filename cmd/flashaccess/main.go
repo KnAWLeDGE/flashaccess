@@ -341,3 +341,39 @@ func fatal(err error) {
 	fmt.Fprintln(os.Stderr, "error:", err)
 	os.Exit(1)
 }
+
+func usage() {
+	fmt.Fprintf(os.Stderr, `FlashAccess %s — temporary MySQL access portal
+
+Usage:
+  flashaccess connect           Configure MySQL credentials and admin password
+  flashaccess serve             Start the web dashboard
+  flashaccess mode <mode>       Get or set operation mode (strict|unrestricted)
+  flashaccess session new       Create a new session (CLI)
+  flashaccess session end <id>  End a session (CLI)
+  flashaccess version           Print version
+
+`, version)
+}
+
+func promptYN(r *bufio.Reader, question string, def bool) bool {
+	yn := "y/N"
+	if def {
+		yn = "Y/n"
+	}
+	fmt.Printf("%s [%s]: ", question, yn)
+	line, _ := r.ReadString('\n')
+	line = strings.ToLower(strings.TrimSpace(line))
+	if line == "" {
+		return def
+	}
+	return line == "y" || line == "yes"
+}
+
+func stopService() error {
+	p, err := exec.LookPath("systemctl")
+	if err != nil {
+		return err
+	}
+	return exec.Command(p, "stop", "flashaccess").Run()
+}

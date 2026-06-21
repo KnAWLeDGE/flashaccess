@@ -63,3 +63,10 @@ func run(bin string, args ...string) error {
 	}
 	return nil
 }
+
+// Noop is a firewall.Manager that does nothing.
+// Used when FLASHACCESS_NOFW=1 (testing / environments without ufw).
+type Noop struct{}
+
+func (Noop) Allow(cidr string, port int, comment string) error { return nil }
+func (Noop) Deny(cidr string, port int) error                  { return nil }
