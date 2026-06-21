@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # FlashAccess installer — Ubuntu 24.04
-# Usage:  curl -fsSL https://raw.githubusercontent.com/davidvos/flashaccess/main/install.sh | bash
+# Usage:  curl -fsSL https://raw.githubusercontent.com/KnAWLeDGE/flashaccess/main/install.sh | bash
 # Or:     bash install.sh [--version v1.0.0] [--addr 127.0.0.1:7432]
 set -euo pipefail
 
-REPO="davidvos/flashaccess"
+REPO="KnAWLeDGE/flashaccess"
 INSTALL_DIR="/usr/local/bin"
 DATA_DIR="/var/lib/flashaccess"
 SERVICE_USER="flashaccess"

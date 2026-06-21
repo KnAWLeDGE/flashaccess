@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/davidvos/flashaccess/internal/config"
+	"github.com/KnAWLeDGE/flashaccess/internal/config"
 	_ "github.com/go-sql-driver/mysql"
 )
 

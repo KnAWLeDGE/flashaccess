@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/davidvos/flashaccess/internal/mysql"
-	"github.com/davidvos/flashaccess/internal/session"
+	"github.com/KnAWLeDGE/flashaccess/internal/mysql"
+	"github.com/KnAWLeDGE/flashaccess/internal/session"
 )
 
 // ── Root ───────────────────────────────────────────────────────────────────

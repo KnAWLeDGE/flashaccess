@@ -8,9 +8,9 @@ import (
 	"html/template"
 	"net/http"
 
-	"github.com/davidvos/flashaccess/internal/config"
-	"github.com/davidvos/flashaccess/internal/mysql"
-	"github.com/davidvos/flashaccess/internal/session"
+	"github.com/KnAWLeDGE/flashaccess/internal/config"
+	"github.com/KnAWLeDGE/flashaccess/internal/mysql"
+	"github.com/KnAWLeDGE/flashaccess/internal/session"
 )
 
 // Server holds shared state for the HTTP layer.

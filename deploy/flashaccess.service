@@ -1,6 +1,6 @@
 [Unit]
 Description=FlashAccess — temporary IP-locked MySQL dashboard
-Documentation=https://github.com/davidvos/flashaccess
+Documentation=https://github.com/KnAWLeDGE/flashaccess
 After=network.target mysql.service
 Wants=mysql.service
 

@@ -20,8 +20,8 @@
   </div>
   <div class="nav-links">
     <a href="./" class="nav-link active">Docs</a>
-    <a href="https://github.com/davidvos/flashaccess" class="nav-link" target="_blank" rel="noopener">GitHub</a>
-    <a href="https://github.com/davidvos/flashaccess/releases" class="nav-cta" target="_blank" rel="noopener">Download</a>
+    <a href="https://github.com/KnAWLeDGE/flashaccess" class="nav-link" target="_blank" rel="noopener">GitHub</a>
+    <a href="https://github.com/KnAWLeDGE/flashaccess/releases" class="nav-cta" target="_blank" rel="noopener">Download</a>
   </div>
 </nav>
 
@@ -84,7 +84,7 @@
   <!-- ── Installation ──────────────────────────────────────── -->
   <h2 id="install">Installation</h2>
   <p>Run the one-liner as root on your Ubuntu server:</p>
-<pre><span class="prompt">$ </span>curl -fsSL https://raw.githubusercontent.com/davidvos/flashaccess/main/install.sh | bash</pre>
+<pre><span class="prompt">$ </span>curl -fsSL https://raw.githubusercontent.com/KnAWLeDGE/flashaccess/main/install.sh | bash</pre>
   <p>The installer will:</p>
   <ol>
     <li>Detect your architecture (amd64 / arm64) and download the correct binary to <code>/usr/local/bin/flashaccess</code></li>
@@ -95,8 +95,8 @@
   </ol>
 
   <h3>Manual install</h3>
-  <p>Download a binary directly from <a href="https://github.com/davidvos/flashaccess/releases" target="_blank" rel="noopener">GitHub Releases</a>:</p>
-<pre><span class="prompt">$ </span>wget https://github.com/davidvos/flashaccess/releases/latest/download/flashaccess-linux-amd64
+  <p>Download a binary directly from <a href="https://github.com/KnAWLeDGE/flashaccess/releases" target="_blank" rel="noopener">GitHub Releases</a>:</p>
+<pre><span class="prompt">$ </span>wget https://github.com/KnAWLeDGE/flashaccess/releases/latest/download/flashaccess-linux-amd64
 <span class="prompt">$ </span>chmod +x flashaccess-linux-amd64
 <span class="prompt">$ </span>sudo mv flashaccess-linux-amd64 /usr/local/bin/flashaccess</pre>
 
@@ -303,7 +303,7 @@ Connect with:
   <!-- ── Build from source ─────────────────────────────────── -->
   <h2 id="build">Building from source</h2>
   <p>Requires Go 1.23+.</p>
-<pre><span class="prompt">$ </span>git clone https://github.com/davidvos/flashaccess.git
+<pre><span class="prompt">$ </span>git clone https://github.com/KnAWLeDGE/flashaccess.git
 <span class="prompt">$ </span>cd flashaccess
 <span class="prompt">$ </span>make build          <span class="comment"># produces bin/flashaccess</span>
 <span class="prompt">$ </span>make install        <span class="comment"># copies to /usr/local/bin (needs sudo)</span></pre>

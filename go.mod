@@ -1,4 +1,4 @@
-module github.com/davidvos/flashaccess
+module github.com/KnAWLeDGE/flashaccess
 
 go 1.23
 
@@ -8,7 +8,4 @@ require (
 	golang.org/x/term v0.24.0
 )
 
-require (
-	filippo.io/edwards25519 v1.1.0 // indirect
-	golang.org/x/sys v0.25.0 // indirect
-)
+requir

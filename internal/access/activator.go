@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/davidvos/flashaccess/internal/firewall"
-	"github.com/davidvos/flashaccess/internal/mysql"
-	"github.com/davidvos/flashaccess/internal/session"
+	"github.com/KnAWLeDGE/flashaccess/internal/firewall"
+	"github.com/KnAWLeDGE/flashaccess/internal/mysql"
+	"github.com/KnAWLeDGE/flashaccess/internal/session"
 )
 
 // Activator wires the security spine to real MySQL + firewall side effects.

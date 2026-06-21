@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/davidvos/flashaccess/internal/session"
+	"github.com/KnAWLeDGE/flashaccess/internal/session"
 	"golang.org/x/crypto/bcrypt"
 )
 
