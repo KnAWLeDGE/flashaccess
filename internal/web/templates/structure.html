@@ -1,7 +1,8 @@
 {{define "dash_title"}}Structure — {{.CurrentDB}}.{{.Table}}{{end}}
 {{define "dash_body"}}
 <div class="dash-content-header">
-  <div class="content-breadcrumb">
+  <div class="content-header-left">
+    <div class="content-breadcrumb">
     <a href="/dashboard">Databases</a>
     <span class="breadcrumb-sep">/</span>
     <a href="/dashboard/{{.CurrentDB}}">{{.CurrentDB}}</a>
@@ -11,6 +12,7 @@
     <span>Structure</span>
   </div>
   <div class="content-header-title">{{.Table}} — Structure</div>
+  </div>
 </div>
 
 <div class="tab-strip">
@@ -49,10 +51,18 @@
   </table>
 </div>
 
+<div class="ai-toolbar" style="margin-top:16px">
+  <button class="btn btn-ai btn-sm" id="fa-explainer-btn" onclick="faSchemaExplainer('{{.CurrentDB}}', '{{.Table}}')">✦ Explain Table</button>
+  <button class="btn btn-ai btn-sm" id="fa-index-advisor-btn" onclick="faIndexAdvisor('{{.CurrentDB}}')">✦ Analyze Indexes</button>
+</div>
+<div class="ai-panel" id="fa-explainer-panel" style="display:none;margin-top:12px"></div>
+<div class="ai-panel" id="fa-index-advisor-panel" style="display:none;margin-top:12px"></div>
+
 {{if .Indexes}}
 <div class="panel" style="margin-top:16px">
   <div class="panel-hd">Indexes</div>
   <table class="data-table">
+    <thead>
     <thead>
       <tr>
         <th>Name</th>
@@ -66,7 +76,7 @@
       <tr>
         <td class="mono fw-500">{{.Name}}</td>
         <td class="mono text-muted">{{.Type}}</td>
-        <td>{{if .Unique}}<span class="badge badge-green">YES</span>{{else}}<span class="badge badge-beige">NO</span>{{end}}</td>
+        <td>{{if .Unique}}<span class="badge badge-yes">YES</span>{{else}}<span class="badge">NO</span>{{end}}</td>
         <td class="mono">{{join .Columns ", "}}</td>
       </tr>
       {{end}}

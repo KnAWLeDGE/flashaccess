@@ -185,6 +185,18 @@ func (m *Manager) Get(id string) (*Session, bool) {
 	return s, ok
 }
 
+// SetPlaygroundDB records the playground database name for the active session.
+func (m *Manager) SetPlaygroundDB(id, dbName string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	s, ok := m.sessions[id]
+	if !ok {
+		return ErrNotFound
+	}
+	s.PlaygroundDB = dbName
+	return m.persist()
+}
+
 // Start launches the background reaper that expires + revokes sessions.
 func (m *Manager) Start() {
 	go func() {
@@ -230,6 +242,7 @@ func (m *Manager) persist() error {
 	if m.store == nil {
 		return nil
 	}
+	m.mu.RLock()
 	m.mu.RLock()
 	list := make([]*Session, 0, len(m.sessions))
 	for _, s := range m.sessions {

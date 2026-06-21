@@ -18,9 +18,13 @@ const (
 	keyFile    = "master.key"
 )
 
+// Mode controls which operations are available in the web UI.
+const (
+	ModeUnrestricted = "unrestricted" // full CRUD, user management, remote access
+	ModeStrict       = "strict"       // read-only-ish; no user mgmt, no DB drops
+)
+
 // DBConfig describes how FlashAccess reaches the local MySQL admin interface.
-// On Ubuntu, root@localhost typically uses auth_socket, so AdminPassword is
-// optional and the socket path is preferred.
 type DBConfig struct {
 	Socket        string `json:"socket,omitempty"`
 	Host          string `json:"host"`
@@ -36,9 +40,21 @@ type SessionDefaults struct {
 
 type Config struct {
 	DB                DBConfig        `json:"db"`
-	ListenAddr        string          `json:"listen_addr"`         // e.g. 127.0.0.1:7432
-	AdminPasswordHash string          `json:"admin_password_hash"` // bcrypt hash — protects the web setup UI
+	ListenAddr        string          `json:"listen_addr"`
+	AdminPasswordHash string          `json:"admin_password_hash"`
 	Defaults          SessionDefaults `json:"defaults"`
+	// Mode is "unrestricted" (default) or "strict".
+	// Unrestricted: full MySQL CRUD, user management, remote access control.
+	// Strict: browse/query only; dangerous ops are hidden/disabled.
+	Mode string `json:"mode,omitempty"`
+}
+
+// EffectiveMode returns Mode, falling back to ModeUnrestricted if unset.
+func (c *Config) EffectiveMode() string {
+	if c.Mode == ModeStrict {
+		return ModeStrict
+	}
+	return ModeUnrestricted
 }
 
 func (s *Store) path() string { return filepath.Join(s.dir, "config.enc") }

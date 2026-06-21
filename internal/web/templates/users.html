@@ -1,0 +1,100 @@
+{{define "dash_title"}}MySQL Users{{end}}
+{{define "dash_body"}}
+<div class="dash-content-header">
+  <div class="content-header-title">MySQL Users</div>
+</div>
+
+{{if .Notice}}
+<div class="alert alert-ok" style="margin:16px 24px 0">{{.Notice}}</div>
+{{end}}
+{{if .Error}}
+<div class="alert alert-error" style="margin:16px 24px 0">{{.Error}}</div>
+{{end}}
+
+<div class="panel" style="margin:16px 24px">
+  <div class="panel-hd">Create User</div>
+  <div class="panel-bd">
+    <form method="POST" action="/users/create" class="inline-form" autocomplete="off">
+      <div class="inline-form-fields">
+        <div class="field-compact">
+          <label class="field-label-sm">Username</label>
+          <input type="text" name="username" class="field-input mono field-sm" placeholder="myuser" required pattern="[a-zA-Z0-9_]{1,32}">
+        </div>
+        <div class="field-compact">
+          <label class="field-label-sm">Host / IP</label>
+          <input type="text" name="host" class="field-input mono field-sm" placeholder="%" value="%">
+          <div class="field-hint-sm">% = any host &nbsp;·&nbsp; 10.0.0.1 = specific IP</div>
+        </div>
+        <div class="field-compact">
+          <label class="field-label-sm">Password</label>
+          <input type="text" name="password" class="field-input mono field-sm" placeholder="min 8 chars" required minlength="8">
+        </div>
+        <div class="field-compact">
+          <label class="field-label-sm">Privileges</label>
+          <select name="privs" class="field-select field-sm">
+            <option value="all">ALL (superuser)</option>
+            <option value="readwrite">Read / Write</option>
+            <option value="read">Read only</option>
+          </select>
+        </div>
+        <div class="field-compact" style="align-self:flex-end">
+          <button type="submit" class="btn btn-primary btn-sm">Create User</button>
+        </div>
+      </div>
+      <p class="field-hint-sm" style="margin-top:8px; color: var(--warn-text)">
+        Superuser accounts have full root access to MySQL. Use specific host patterns to limit remote access.
+      </p>
+    </form>
+  </div>
+</div>
+
+<div style="padding:0 24px 24px">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>User</th>
+        <th>Host</th>
+        <th>Auth Plugin</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+    {{range .Users}}
+      <tr>
+        <td class="mono">{{.User}}</td>
+        <td class="mono">{{.Host}}</td>
+        <td class="mono muted">{{.Plugin}}</td>
+        <td>
+          {{if hasPfx .User "tmp_"}}
+          <span class="muted" title="Managed by an active FlashAccess session — end the session to remove">session user</span>
+          {{else}}
+          <form method="POST" action="/users/drop" style="display:inline" class="drop-user-form">
+            <input type="hidden" name="username" value="{{.User}}">
+            <input type="hidden" name="host" value="{{.Host}}">
+            <button type="button" class="btn btn-danger btn-xs"
+              onclick="uiDropUser(this, '{{.User}}', '{{.Host}}')">Drop</button>
+          </form>
+          {{end}}
+        </td>
+      </tr>
+    {{else}}
+      <tr><td colspan="4" class="empty-state">No users found.</td></tr>
+    {{end}}
+    </tbody>
+  </table>
+</div>
+
+<script>
+function uiDropUser(btn, user, host) {
+  if (!FAI.needsConfirmation('user', 'ddl', -1)) {
+    btn.closest('form').submit();
+    return;
+  }
+  FAI.confirm(
+    'Drop User',
+    '<p>Drop <strong class="mono">' + user + '@' + host + '</strong>?</p>' +
+    '<p style="color:var(--err-text);font-weight:600">This cannot be undone.</p>'
+  ).then(function(ok) { if (ok) btn.closest('form').submit(); });
+}
+</script>
+{{end}}

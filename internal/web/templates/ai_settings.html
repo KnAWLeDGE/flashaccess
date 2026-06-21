@@ -1,0 +1,178 @@
+{{define "dash_title"}}AI Settings{{end}}
+{{define "dash_body"}}
+<div class="dash-content-header">
+  <div class="content-header-left">
+    <div class="content-header-title">AI Settings</div>
+  </div>
+</div>
+
+<div class="panel ai-settings-panel">
+  <div class="panel-hd">OpenRouter API Key (BYOK)</div>
+  <div class="panel-bd">
+    <p class="panel-desc">
+      FlashAccess uses <a href="https://openrouter.ai" target="_blank" rel="noopener">OpenRouter</a> to power AI features.
+      Your API key is stored in your browser's localStorage — it never leaves your browser or touches the server.
+    </p>
+
+    <div class="field">
+      <label class="field-label" for="ai-api-key">API Key</label>
+      <input type="password" id="ai-api-key" class="field-input mono" placeholder="sk-or-…" autocomplete="off">
+      <div class="field-hint">Get a key at <a href="https://openrouter.ai/keys" target="_blank" rel="noopener">openrouter.ai/keys</a>. Free tier available.</div>
+    </div>
+
+    <div class="field">
+      <label class="field-label" for="ai-model">Model</label>
+      <select id="ai-model" class="field-select">
+        <option value="openai/gpt-4o-mini">GPT-4o Mini (fast, cheap)</option>
+        <option value="openai/gpt-4o">GPT-4o (best quality)</option>
+        <option value="anthropic/claude-3-5-haiku">Claude 3.5 Haiku (fast)</option>
+        <option value="anthropic/claude-sonnet-4-5">Claude Sonnet 4.5</option>
+        <option value="google/gemini-flash-1.5">Gemini Flash 1.5 (fast, cheap)</option>
+        <option value="meta-llama/llama-3.1-8b-instruct">Llama 3.1 8B (free)</option>
+      </select>
+      <div class="field-hint">All models are accessed via OpenRouter. Pricing varies by model.</div>
+    </div>
+  </div>
+</div>
+
+<div class="panel ai-settings-panel" style="margin-top:20px">
+  <div class="panel-hd">Confirmation Mode</div>
+  <div class="panel-bd">
+    <p class="panel-desc">
+      AI features that modify the database always require confirmation.
+      Choose how that confirmation works.
+    </p>
+
+    <div class="field">
+      <label class="field-label">Confirmation method</label>
+      <div class="radio-group">
+        <label class="radio-option">
+          <input type="radio" name="ai-confirm-mode" value="dialog">
+          <span class="radio-label">
+            <strong>Dialog only</strong> — A confirmation dialog is shown before any change. <em>(default)</em>
+          </span>
+        </label>
+        <label class="radio-option">
+          <input type="radio" name="ai-confirm-mode" value="dialog+passphrase">
+          <span class="radio-label">
+            <strong>Dialog + Passphrase</strong> — Confirmation dialog AND a passphrase must be entered.
+          </span>
+        </label>
+        <label class="radio-option">
+          <input type="radio" name="ai-confirm-mode" value="passphrase">
+          <span class="radio-label">
+            <strong>Passphrase only</strong> — No dialog; only the passphrase gate.
+          </span>
+        </label>
+      </div>
+    </div>
+
+    <div class="field" id="ai-passphrase-field" style="display:none">
+      <label class="field-label" for="ai-passphrase">Passphrase</label>
+      <input type="text" id="ai-passphrase" class="field-input" placeholder="Choose a short phrase you'll remember" autocomplete="off">
+      <div class="field-hint">You'll need to type this exactly before any AI database change is applied.</div>
+    </div>
+  </div>
+</div>
+
+<div class="panel ai-settings-panel" style="margin-top:20px">
+  <div class="panel-hd">When to Confirm Changes</div>
+  <div class="panel-bd">
+    <p class="panel-desc">
+      Control which database-modifying operations require confirmation. This applies to both AI-suggested changes and queries you run manually.
+    </p>
+
+    <div class="field">
+      <label class="field-label">Require confirmation on…</label>
+      <div class="radio-group">
+        <label class="radio-option">
+          <input type="radio" name="ai-confirm-when" value="all">
+          <span class="radio-label">
+            <strong>All changes</strong> — Any INSERT, UPDATE, DELETE, or schema change. <em>(default)</em>
+          </span>
+        </label>
+        <label class="radio-option">
+          <input type="radio" name="ai-confirm-when" value="big">
+          <span class="radio-label">
+            <strong>Big changes only</strong> — DDL (ALTER, DROP, TRUNCATE) and DML affecting more than 100 rows.
+          </span>
+        </label>
+        <label class="radio-option">
+          <input type="radio" name="ai-confirm-when" value="manual">
+          <span class="radio-label">
+            <strong>Manual queries only</strong> — Only queries you type yourself in the SQL editor; AI-applied changes skip confirmation.
+          </span>
+        </label>
+        <label class="radio-option">
+          <input type="radio" name="ai-confirm-when" value="never">
+          <span class="radio-label">
+            <strong>Never</strong> — No confirmation required for any operation. <span style="color:var(--err-text)">Use with care.</span>
+          </span>
+        </label>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="form-actions" style="margin-top:20px">
+  <button class="btn btn-primary" onclick="aiSettingsSave()">Save Settings</button>
+  <span id="ai-settings-saved" class="form-note" style="display:none;color:var(--g500)">✓ Saved</span>
+  <button class="btn btn-secondary" onclick="aiSettingsClear()" style="margin-left:auto;color:var(--err-text)">Clear All AI Settings</button>
+</div>
+
+<script>
+(function () {
+  var s = FAI.loadSettings();
+
+  document.getElementById('ai-api-key').value = s.apiKey || '';
+  document.getElementById('ai-model').value   = s.model  || 'openai/gpt-4o-mini';
+
+  // Restore confirm-mode radios
+  var modeRadios = document.querySelectorAll('input[name="ai-confirm-mode"]');
+  modeRadios.forEach(function (r) { if (r.value === s.confirmMode) r.checked = true; });
+  document.getElementById('ai-passphrase').value = s.passphrase || '';
+
+  // Show/hide passphrase field
+  function updatePassphraseVis() {
+    var mode = document.querySelector('input[name="ai-confirm-mode"]:checked');
+    var show = mode && (mode.value === 'dialog+passphrase' || mode.value === 'passphrase');
+    document.getElementById('ai-passphrase-field').style.display = show ? '' : 'none';
+  }
+  modeRadios.forEach(function (r) { r.addEventListener('change', updatePassphraseVis); });
+  updatePassphraseVis();
+
+  // Restore confirm-when radios
+  var whenRadios = document.querySelectorAll('input[name="ai-confirm-when"]');
+  whenRadios.forEach(function (r) { if (r.value === (s.confirmWhen || 'all')) r.checked = true; });
+})();
+
+function aiSettingsSave() {
+  var mode = document.querySelector('input[name="ai-confirm-mode"]:checked');
+  var when = document.querySelector('input[name="ai-confirm-when"]:checked');
+  var s = {
+    apiKey:       document.getElementById('ai-api-key').value.trim(),
+    model:        document.getElementById('ai-model').value,
+    confirmMode:  mode ? mode.value : 'dialog',
+    passphrase:   document.getElementById('ai-passphrase').value,
+    confirmWhen:  when ? when.value : 'all',
+  };
+  FAI.saveSettings(s);
+  var saved = document.getElementById('ai-settings-saved');
+  saved.style.display = '';
+  setTimeout(function () { saved.style.display = 'none'; }, 2000);
+}
+
+function aiSettingsClear() {
+  if (!confirm('Clear all AI settings (API key, model, passphrase)?')) return;
+  localStorage.removeItem('fa_ai_settings');
+  document.getElementById('ai-api-key').value = '';
+  document.getElementById('ai-model').value   = 'openai/gpt-4o-mini';
+  var defaultMode = document.querySelector('input[name="ai-confirm-mode"][value="dialog"]');
+  if (defaultMode) defaultMode.checked = true;
+  var defaultWhen = document.querySelector('input[name="ai-confirm-when"][value="all"]');
+  if (defaultWhen) defaultWhen.checked = true;
+  document.getElementById('ai-passphrase').value = '';
+  document.getElementById('ai-passphrase-field').style.display = 'none';
+}
+</script>
+{{end}}

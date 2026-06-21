@@ -6,49 +6,119 @@
 <title>{{template "dash_title" .}} — FlashAccess</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/css/app.css">
 </head>
 <body class="dash-body">
 
 <div class="dash-topbar">
   <div class="dash-topbar-left">
-    <div class="logo-mark sm" aria-hidden="true"></div>
-    <span class="wordmark sm">Flash<em>Access</em></span>
+    <a href="/dashboard" class="topbar-logo">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" class="logo-mark sm" aria-hidden="true">
+        <polygon points="1,14 7.5,0 13.5,14" fill="#7A3010"/>
+        <polygon points="10.5,14 17,0 23,14" fill="#7A3010"/>
+        <rect x="0" y="11" width="24" height="13" rx="4" fill="#7A3010"/>
+        <polygon points="3,13 7.5,3.5 12,13" fill="#C85A20"/>
+        <polygon points="12,13 16.5,3.5 21,13" fill="#C85A20"/>
+        <circle cx="7.5" cy="17" r="1.5" fill="#F0A060"/>
+        <circle cx="16.5" cy="17" r="1.5" fill="#F0A060"/>
+        <path d="M13.5,19 L10.5,19 L11.2,21.5 L9.5,21.5 L12,24 L12,22 L14,22 Z" fill="#F0A060"/>
+      </svg>
+      <span class="wordmark sm">Flash<em>Access</em></span>
+    </a>
     <span class="topbar-sep" aria-hidden="true"></span>
-    <span class="session-chip">
-      <span class="status-diamond active" aria-label="Active"></span>
-      {{.Session.ID}}
-    </span>
-    <span class="session-chip">{{.Session.AllowedCIDR}}</span>
+    <span class="session-chip mono">{{.Session.ID}}</span>
+    <span class="session-chip mono">{{.Session.AllowedCIDR}}</span>
+    {{if eq .Mode "strict"}}
+    <span class="mode-badge strict">strict</span>
+    {{else}}
+    <span class="mode-badge unrest">full</span>
+    {{end}}
   </div>
   <div class="dash-topbar-right">
-    <span class="session-timer" id="js-timer" data-expires="{{.Session.ExpiresAt.Unix}}">{{.Remaining}}</span>
-    <form method="POST" action="/api/session/end" style="display:inline">
-      <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('End this session? Root access and firewall rules will be revoked immediately.')">End Session</button>
-    </form>
+    <div class="session-end-group">
+      <div class="session-timer-wrap">
+        <span class="timer-label">expires in</span>
+        <span class="session-timer" id="js-timer" data-expires="{{.Session.ExpiresAt.Unix}}">{{.Remaining}}</span>
+      </div>
+      <form method="POST" action="/api/session/end" style="display:inline" id="js-end-form">
+        <button type="button" class="btn btn-danger btn-sm" id="js-end-btn" onclick="confirmEnd()">
+          ✕ Terminate Session
+        </button>
+      </form>
+    </div>
   </div>
 </div>
 
 <div class="dash-layout">
-
   <nav class="dash-sidebar">
+
     <div class="sidebar-section-label">Databases</div>
     {{range .Databases}}
+    {{if not (hasPfx . "_fa_playground_")}}
     <div class="db-group">
       <a href="/dashboard/{{.}}" class="db-name-link {{if eq . $.CurrentDB}}active{{end}}">
         <span class="db-icon" aria-hidden="true"></span>{{.}}
       </a>
     </div>
     {{end}}
+    {{end}}
+    {{if .PlaygroundDB}}
+    <div class="db-group">
+      <a href="/dashboard/{{.PlaygroundDB}}" class="db-name-link playground-db-link {{if eq .PlaygroundDB $.CurrentDB}}active{{end}}">
+        <span class="playground-dot" aria-hidden="true">▶</span> playground
+      </a>
+    </div>
+    {{end}}
+
+    <form method="POST" action="/databases/create" class="sidebar-new-db" id="js-new-db-form" style="display:none">
+      <input type="text" name="name" class="field-input mono sidebar-db-input" placeholder="database_name" required autofocus>
+      <button type="submit" class="btn btn-primary btn-xs">Create</button>
+      <button type="button" class="btn btn-secondary btn-xs" onclick="document.getElementById('js-new-db-form').style.display='none';document.getElementById('js-new-db-btn').style.display=''">Cancel</button>
+    </form>
+    <button class="sidebar-action-btn" id="js-new-db-btn" onclick="document.getElementById('js-new-db-form').style.display='';document.getElementById('js-new-db-btn').style.display='none'">
+      + New Database
+    </button>
+
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section-label">Tools</div>
+    <a href="/stats" class="sidebar-tool-link {{if eq .Section \"stats\"}}active{{end}}">
+      <span class="tool-icon">▤</span> Server Stats
+    </a>
+    {{if eq .Mode "unrestricted"}}
+    <a href="/users" class="sidebar-tool-link {{if eq .Section \"users\"}}active{{end}}">
+      <span class="tool-icon">♟</span> MySQL Users
+    </a>
+    {{end}}
+    <a href="/playground" class="sidebar-tool-link {{if eq .Section \"playground\"}}active{{end}}">
+      <span class="tool-icon">▶</span> Playground{{if .PlaygroundDB}}<span class="pg-active-dot"></span>{{end}}
+    </a>
+    <a href="/ai/settings" class="sidebar-tool-link {{if eq .Section \"ai-settings\"}}active{{end}}">
+      <span class="tool-icon">✦</span> AI Settings
+    </a>
+
   </nav>
 
   <main class="dash-main">
+    {{if and .PlaygroundDB (hasPfx .CurrentDB "_fa_playground_")}}
+    <div class="playground-banner">
+      <span class="playground-banner-icon">▶</span>
+      <span>Playground environment — changes here do not affect your live databases.</span>
+      <a href="/playground" class="playground-banner-link">Manage →</a>
+    </div>
+    {{end}}
     {{template "dash_body" .}}
   </main>
-
 </div>
 
 <script src="/static/js/app.js"></script>
+<script src="/static/js/ai.js"></script>
+<script>
+function confirmEnd() {
+  if (confirm('Terminate this session?\n\nThis will immediately:\n• Revoke the temporary MySQL user\n• Close the UFW firewall rule\n• End your dashboard access')) {
+    document.getElementById('js-end-form').submit();
+  }
+}
+</script>
 </body>
 </html>{{end}}

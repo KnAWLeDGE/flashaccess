@@ -1,10 +1,12 @@
 package access
 
 import (
+	"context"
 	"crypto/rand"
 	"errors"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/KnAWLeDGE/flashaccess/internal/firewall"
 	"github.com/KnAWLeDGE/flashaccess/internal/mysql"
@@ -49,7 +51,7 @@ func (a *Activator) Provision(s *session.Session) error {
 	return nil
 }
 
-// Revoke tears everything down. It attempts both steps even if one fails,
+// Revoke tears everything down. It attempts all steps even if one fails,
 // so a stuck firewall rule never leaves a live DB grant (or vice versa).
 func (a *Activator) Revoke(s *session.Session) error {
 	var errs []error
@@ -60,6 +62,14 @@ func (a *Activator) Revoke(s *session.Session) error {
 	}
 	if err := a.FW.Deny(s.AllowedCIDR, a.Port); err != nil {
 		errs = append(errs, fmt.Errorf("close firewall: %w", err))
+	}
+	// Best-effort: clean up playground DB so it doesn't linger after session ends.
+	if s.PlaygroundDB != "" {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		if err := a.DB.DropPlaygroundDB(ctx, s.PlaygroundDB); err != nil {
+			a.logf("warning: drop playground %q: %v", s.PlaygroundDB, err)
+		}
 	}
 	if len(errs) > 0 {
 		a.logf("revoke session %s had errors: %v", s.ID, errs)

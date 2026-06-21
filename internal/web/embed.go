@@ -12,10 +12,8 @@ import (
 //go:embed templates static
 var webFS embed.FS
 
-// staticFS is a sub-filesystem rooted at "static/" for the file server.
 var staticFS, _ = fs.Sub(webFS, "static")
 
-// templateFuncs are helper functions available in all templates.
 var templateFuncs = template.FuncMap{
 	"fmtDuration": func(d time.Duration) string {
 		d = d.Round(time.Second)
@@ -33,10 +31,11 @@ var templateFuncs = template.FuncMap{
 		}
 		return fmt.Sprintf("%.3fs", d.Seconds())
 	},
-	"join": strings.Join,
-	"add":  func(a, b int) int { return a + b },
-	"sub":  func(a, b int) int { return a - b },
-	"mul":  func(a, b int) int { return a * b },
+	"fmtPct": func(f float64) string { return fmt.Sprintf("%.1f", f) },
+	"join":      strings.Join,
+	"add":       func(a, b int) int { return a + b },
+	"sub":       func(a, b int) int { return a - b },
+	"mul":       func(a, b int) int { return a * b },
 	"seq": func(n int) []int {
 		out := make([]int, n)
 		for i := range out {
@@ -46,26 +45,26 @@ var templateFuncs = template.FuncMap{
 	},
 	"trimSpace": strings.TrimSpace,
 	"lower":     strings.ToLower,
+	"hasPfx":    strings.HasPrefix,
 }
 
-// parseTemplates builds one *template.Template per page.  Each is parsed
-// together with its layout so {{template "title" .}} / {{template "body" .}}
-// resolve correctly within that set.
 func parseTemplates() (map[string]*template.Template, error) {
 	pages := map[string]struct {
 		layout string
 		page   string
 	}{
-		// Simple layout (gate, setup, keyshow)
-		"gate":    {"templates/layout.html", "templates/gate.html"},
-		"setup":   {"templates/layout.html", "templates/setup.html"},
-		"keyshow": {"templates/layout.html", "templates/keyshow.html"},
-		// Dashboard layout
+		"gate":      {"templates/layout.html", "templates/gate.html"},
+		"setup":     {"templates/layout.html", "templates/setup.html"},
+		"keyshow":   {"templates/layout.html", "templates/keyshow.html"},
 		"dashboard": {"templates/dash_layout.html", "templates/dashboard.html"},
 		"db":        {"templates/dash_layout.html", "templates/db.html"},
 		"browse":    {"templates/dash_layout.html", "templates/browse.html"},
 		"structure": {"templates/dash_layout.html", "templates/structure.html"},
 		"query":     {"templates/dash_layout.html", "templates/query.html"},
+		"stats":       {"templates/dash_layout.html", "templates/stats.html"},
+		"users":       {"templates/dash_layout.html", "templates/users.html"},
+		"ai_settings": {"templates/dash_layout.html", "templates/ai_settings.html"},
+		"playground":  {"templates/dash_layout.html", "templates/playground.html"},
 	}
 
 	out := make(map[string]*template.Template, len(pages))

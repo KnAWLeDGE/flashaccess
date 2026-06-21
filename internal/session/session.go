@@ -30,6 +30,10 @@ type Session struct {
 	DBPassword string `json:"db_password,omitempty"`
 	DBHost     string `json:"db_host,omitempty"`
 
+	// PlaygroundDB is the name of a _fa_playground_ database created for this session.
+	// Empty if no playground has been set up.
+	PlaygroundDB string `json:"playground_db,omitempty"`
+
 	FailedAttempts int       `json:"failed_attempts"`
 	LastAttempt    time.Time `json:"last_attempt"`
 }

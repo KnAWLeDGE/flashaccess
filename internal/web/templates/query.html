@@ -1,7 +1,8 @@
 {{define "dash_title"}}SQL Query — {{.CurrentDB}}{{end}}
 {{define "dash_body"}}
 <div class="dash-content-header">
-  <div class="content-breadcrumb">
+  <div class="content-header-left">
+    <div class="content-breadcrumb">
     <a href="/dashboard">Databases</a>
     <span class="breadcrumb-sep">/</span>
     <a href="/dashboard/{{.CurrentDB}}">{{.CurrentDB}}</a>
@@ -9,7 +10,18 @@
     <span>SQL Query</span>
   </div>
   <div class="content-header-title">SQL Editor</div>
+  </div>
 </div>
+
+<div class="ai-toolbar" style="margin-bottom:12px">
+  <div class="ai-assistant-row">
+    <input type="text" id="fa-sql-assistant-input" class="field-input ai-assistant-input" placeholder="Describe what you want in plain English…">
+    <button class="btn btn-ai btn-sm" id="fa-sql-assistant-btn" onclick="faSQLAssistant('{{.CurrentDB}}')">&#10022; Generate SQL</button>
+  </div>
+  <button class="btn btn-ai btn-sm" id="fa-optimizer-btn" onclick="faQueryOptimizer('{{.CurrentDB}}', document.getElementById('js-sql').value)">&#10022; Optimize Query</button>
+</div>
+<div class="ai-panel" id="fa-sql-assistant-panel" style="display:none;margin-bottom:12px"></div>
+<div class="ai-panel" id="fa-optimizer-panel" style="display:none;margin-bottom:12px"></div>
 
 <div class="query-editor-wrap">
   <form method="POST" action="/dashboard/{{.CurrentDB}}/query" id="js-query-form">
@@ -17,19 +29,15 @@
       <span class="editor-db-label">{{.CurrentDB}}</span>
       <div class="editor-actions">
         <button type="button" class="btn btn-ghost btn-sm" onclick="clearEditor()">Clear</button>
-        <button type="submit" class="btn btn-primary btn-sm">Run Query →</button>
+        <button type="button" class="btn btn-secondary btn-sm" id="js-preview-btn" onclick="previewQuery('{{.CurrentDB}}')">Preview</button>
+        <button type="button" class="btn btn-primary btn-sm" id="js-run-btn" onclick="runQuery()">Run Query &#8594;</button>
       </div>
     </div>
-    <textarea
-      id="js-sql"
-      name="sql"
-      class="sql-editor"
-      rows="8"
-      placeholder="SELECT * FROM users LIMIT 100;"
-      spellcheck="false"
-    >{{.SQL}}</textarea>
+    <textarea id="js-sql" name="sql" class="sql-editor" rows="8" placeholder="SELECT * FROM users LIMIT 100;" spellcheck="false">{{.SQL}}</textarea>
   </form>
 </div>
+
+<div id="js-preview-panel" class="query-preview-panel" style="display:none"></div>
 
 {{if .Result}}
   {{if .Result.Err}}
@@ -38,7 +46,7 @@
   </div>
   {{else if .Result.IsSelect}}
   <div class="result-meta">
-    {{len .Result.Rows}} rows · {{fmtElapsed .Result.Elapsed}}
+    {{len .Result.Rows}} rows &middot; {{fmtElapsed .Result.Elapsed}}
   </div>
   {{if .Result.Rows}}
   <div class="table-scroll">
@@ -60,20 +68,141 @@
   {{end}}
   {{else}}
   <div class="result-meta success">
-    {{.Result.Affected}} rows affected · {{fmtElapsed .Result.Elapsed}}
+    {{.Result.Affected}} rows affected &middot; {{fmtElapsed .Result.Elapsed}}
   </div>
   {{end}}
 {{end}}
 
 <script>
+function classifyQueryKind(sql) {
+  var u = sql.trim().toUpperCase().replace(/\/\*[\s\S]*?\*\//g, '').replace(/--[^\n]*/g, '');
+  if (/^(INSERT|UPDATE|DELETE|REPLACE)\b/.test(u)) return 'dml';
+  if (/^(CREATE|ALTER|DROP|TRUNCATE|RENAME)\b/.test(u)) return 'ddl';
+  return 'select';
+}
+
+function runQuery() {
+  var sql = document.getElementById('js-sql').value.trim();
+  if (!sql) { document.getElementById('js-query-form').submit(); return; }
+  var kind = classifyQueryKind(sql);
+  if (!FAI.needsConfirmation('manual', kind, -1)) {
+    document.getElementById('js-query-form').submit();
+    return;
+  }
+  FAI.confirm(
+    'Run Query',
+    '<p>You are about to execute a write operation.</p>' +
+    '<pre class="ai-sql ai-confirm-sql">' + escHtml(sql) + '</pre>'
+  ).then(function(ok) { if (ok) document.getElementById('js-query-form').submit(); });
+}
+
 function clearEditor() {
   document.getElementById('js-sql').value = '';
   document.getElementById('js-sql').focus();
+  document.getElementById('js-preview-panel').style.display = 'none';
 }
+
 document.addEventListener('keydown', function(e) {
   if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
     document.getElementById('js-query-form').submit();
   }
 });
+
+var _previewKind = 'other';
+var _previewRows = -1;
+
+function previewQuery(db) {
+  var sql = document.getElementById('js-sql').value.trim();
+  if (!sql) return;
+  var btn = document.getElementById('js-preview-btn');
+  var panel = document.getElementById('js-preview-panel');
+  btn.textContent = 'Previewing…';
+  btn.disabled = true;
+  panel.style.display = 'none';
+
+  fetch('/api/query/preview', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ db: db, sql: sql }),
+  }).then(function(r) { return r.json(); })
+  .then(function(p) {
+    btn.textContent = 'Preview';
+    btn.disabled = false;
+    renderPreview(p, panel);
+  }).catch(function(err) {
+    btn.textContent = 'Preview';
+    btn.disabled = false;
+    panel.innerHTML = '<div class="preview-error">Preview failed: ' + escHtml(err.message) + '</div>';
+    panel.style.display = '';
+  });
+}
+
+function renderPreview(p, panel) {
+  _previewKind = p.Kind || 'other';
+  _previewRows = p.EstimatedRows || -1;
+
+  if (p.ErrStr) {
+    panel.innerHTML = '<div class="preview-error">Preview error: ' + escHtml(p.ErrStr) + '</div>';
+    panel.style.display = '';
+    return;
+  }
+
+  var labels = { select: 'SELECT', dml: 'Write operation', ddl: 'Schema change', other: 'Statement' };
+  var kindLabel = labels[p.Kind] || p.Kind;
+  var html = '<div class="preview-header"><span class="preview-kind preview-kind-' + p.Kind + '">' + kindLabel + '</span>';
+  if (p.EstimatedRows > 0) {
+    html += '<span class="preview-rows">~' + p.EstimatedRows + ' row' + (p.EstimatedRows !== 1 ? 's' : '') + ' affected</span>';
+  }
+  html += '</div>';
+
+  if (p.Warning) {
+    html += '<div class="preview-warning">⚠ ' + escHtml(p.Warning) + '</div>';
+  }
+
+  if (p.SampleCols && p.SampleCols.length > 0 && p.SampleRows && p.SampleRows.length > 0) {
+    html += '<div class="preview-sample-label">Rows that would be affected (sample of up to 5):</div>';
+    html += '<div class="table-scroll"><table class="data-table preview-table"><thead><tr>';
+    p.SampleCols.forEach(function(c) { html += '<th>' + escHtml(c) + '</th>'; });
+    html += '</tr></thead><tbody>';
+    p.SampleRows.forEach(function(row) {
+      html += '<tr>';
+      row.forEach(function(cell) {
+        html += cell === 'NULL'
+          ? '<td class="mono"><span class="null-val">NULL</span></td>'
+          : '<td class="mono">' + escHtml(cell) + '</td>';
+      });
+      html += '</tr>';
+    });
+    html += '</tbody></table></div>';
+  }
+
+  if (p.Kind === 'dml' || p.Kind === 'ddl') {
+    html += '<div class="preview-actions">' +
+      '<button class="btn btn-danger btn-sm" onclick="confirmAndRun()">Apply Anyway →</button>' +
+      '<span class="preview-actions-note">Review carefully — this operation may be irreversible.</span>' +
+      '</div>';
+  }
+
+  panel.innerHTML = html;
+  panel.style.display = '';
+}
+
+function confirmAndRun() {
+  if (!FAI.needsConfirmation('manual', _previewKind, _previewRows)) {
+    document.getElementById('js-query-form').submit();
+    return;
+  }
+  FAI.confirm(
+    'Apply Query',
+    '<p>You are about to execute a write operation. This action may be irreversible.</p>' +
+    '<pre class="ai-sql ai-confirm-sql">' + escHtml(document.getElementById('js-sql').value) + '</pre>'
+  ).then(function(ok) {
+    if (ok) document.getElementById('js-query-form').submit();
+  });
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 </script>
 {{end}}

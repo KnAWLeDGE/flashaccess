@@ -45,20 +45,20 @@ func (u *UFW) bin() string {
 }
 
 func run(bin string, args ...string) error {
-	// Run via sudo so the flashaccess service user can manage ufw rules
-	// without running the entire daemon as root.
-	// Requires: /etc/sudoers.d/flashaccess-ufw granting NOPASSWD: /usr/sbin/ufw
-	cmd := exec.Command("sudo", append([]string{bin}, args...)...)
+	// Resolve the full canonical path (following symlinks) so it matches
+	// the sudoers rule exactly. On Ubuntu 22.04+ /usr/sbin is a symlink to
+	// /usr/bin, so "ufw" resolves to /usr/bin/ufw — the sudoers rule must
+	// use the same resolved path.
+	fullPath, err := exec.LookPath(bin)
+	if err != nil {
+		return fmt.Errorf("cannot find %s in PATH: %w", bin, err)
+	// -n = non-interactive: fail immediately rather than prompt for confirmation.
+	cmd := exec.Command(fullPath, append([]string{"-n"}, args...)...)
 	var out bytes.Buffer
-	cmd.Stdout, cmd.Stderr = &out, &out
+	cmd.Stdout = &out
+	cmd.Stderr = &out
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("%s %v: %w (%s)", bin, args, err, out.String())
+		return fmt.Errorf("ufw %v: %w\n%s", args, err, out.String())
 	}
 	return nil
 }
-
-// Noop is a no-op firewall for development on machines without ufw.
-type Noop struct{}
-
-func (Noop) Allow(string, int, string) error { return nil }
-func (Noop) Deny(string, int) error          { return nil }

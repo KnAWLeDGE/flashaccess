@@ -275,3 +275,176 @@ func valueStr(v interface{}) string {
 func escIdent(s string) string {
 	return strings.ReplaceAll(s, "`", "``")
 }
+
+// QueryPreview describes an estimated impact of a SQL statement before execution.
+type QueryPreview struct {
+	Kind          string // "select", "dml", "ddl", "other"
+	SQL           string
+	EstimatedRows int64  // rows affected/examined (from EXPLAIN, 0 if unknown)
+	SampleRows    [][]string
+	SampleCols    []string
+	Warning       string // e.g. "no WHERE clause — all rows will be affected"
+	ErrStr        string
+}
+
+// PreviewQuery analyses SQL without executing it and returns a QueryPreview.
+// For DML (UPDATE/DELETE) it estimates affected rows via EXPLAIN SELECT.
+// For DDL it describes the operation. For SELECT it runs EXPLAIN normally.
+func (m *Manager) PreviewQuery(ctx context.Context, dbName, query string) *QueryPreview {
+	q := strings.TrimSpace(query)
+	upper := strings.ToUpper(q)
+	kind := classifySQL(upper)
+
+	conn, err := m.db.Conn(ctx)
+	if err != nil {
+		return &QueryPreview{Kind: kind, SQL: q, ErrStr: err.Error()}
+	}
+	defer conn.Close()
+
+	if dbName != "" {
+		if _, err := conn.ExecContext(ctx, fmt.Sprintf("USE `%s`", escIdent(dbName))); err != nil {
+			return &QueryPreview{Kind: kind, SQL: q, ErrStr: fmt.Sprintf("USE %s: %v", dbName, err)}
+		}
+	}
+
+	prev := &QueryPreview{Kind: kind, SQL: q}
+
+	switch kind {
+	case "select":
+		// Run EXPLAIN to get estimated rows.
+		rows, err := conn.QueryContext(ctx, "EXPLAIN "+q)
+		if err != nil {
+			prev.ErrStr = "EXPLAIN: " + err.Error()
+			return prev
+		}
+		defer rows.Close()
+		cols, _ := rows.Columns()
+		var total int64
+		for rows.Next() {
+			vals := make([]interface{}, len(cols))
+			ptrs := make([]interface{}, len(cols))
+			for i := range vals { ptrs[i] = &vals[i] }
+			_ = rows.Scan(ptrs...)
+			// cols[9] is "rows" in MySQL EXPLAIN output
+			for i, col := range cols {
+				if strings.EqualFold(col, "rows") {
+					if b, ok := vals[i].(int64); ok { total += b }
+					if b, ok := vals[i].([]byte); ok {
+						var n int64
+						fmt.Sscanf(string(b), "%d", &n)
+						total += n
+					}
+				}
+			}
+		}
+		prev.EstimatedRows = total
+
+	case "dml":
+		// Convert DML to a COUNT SELECT to estimate impact.
+		countSQL := dmlToCountSQL(q)
+		if countSQL != "" {
+			row := conn.QueryRowContext(ctx, countSQL)
+			var n int64
+			if err := row.Scan(&n); err == nil {
+				prev.EstimatedRows = n
+			}
+		}
+		// Warn if no WHERE clause on UPDATE/DELETE.
+		trimmed := strings.ToUpper(strings.TrimSpace(q))
+		if (strings.HasPrefix(trimmed, "UPDATE") || strings.HasPrefix(trimmed, "DELETE")) &&
+			!strings.Contains(trimmed, " WHERE ") {
+			prev.Warning = "No WHERE clause — all rows in the table will be affected."
+		}
+		// Show a sample of what would be affected (first 5 rows).
+		sampleSQL := dmlToSampleSQL(q)
+		if sampleSQL != "" {
+			srows, err := conn.QueryContext(ctx, sampleSQL)
+			if err == nil {
+				defer srows.Close()
+				prev.SampleCols, _ = srows.Columns()
+				for srows.Next() && len(prev.SampleRows) < 5 {
+					vals := make([]interface{}, len(prev.SampleCols))
+					ptrs := make([]interface{}, len(prev.SampleCols))
+					for i := range vals { ptrs[i] = &vals[i] }
+					_ = srows.Scan(ptrs...)
+					row := make([]string, len(vals))
+					for i, v := range vals { row[i] = valueStr(v) }
+					prev.SampleRows = append(prev.SampleRows, row)
+				}
+			}
+		}
+
+	case "ddl":
+		// For DDL, describe the operation — no safe preview execution.
+		prev.Warning = "This is a schema-change (DDL) statement. It cannot be previewed — verify carefully before applying."
+	}
+
+	return prev
+}
+
+// classifySQL returns a coarse category for a SQL statement.
+func classifySQL(upper string) string {
+	upper = strings.TrimSpace(upper)
+	for _, pfx := range []string{"SELECT", "SHOW", "EXPLAIN", "DESCRIBE", "DESC"} {
+		if strings.HasPrefix(upper, pfx) { return "select" }
+	}
+	for _, pfx := range []string{"INSERT", "UPDATE", "DELETE", "REPLACE"} {
+		if strings.HasPrefix(upper, pfx) { return "dml" }
+	}
+	for _, pfx := range []string{"CREATE", "ALTER", "DROP", "TRUNCATE", "RENAME"} {
+		if strings.HasPrefix(upper, pfx) { return "ddl" }
+	}
+	return "other"
+}
+
+// dmlToCountSQL rewrites a DML statement into a SELECT COUNT(*) with the same WHERE clause.
+// Returns "" if it can't be converted safely.
+func dmlToCountSQL(q string) string {
+	up := strings.ToUpper(strings.TrimSpace(q))
+
+	if strings.HasPrefix(up, "DELETE FROM") || strings.HasPrefix(up, "DELETE ") {
+		// DELETE FROM t WHERE ... → SELECT COUNT(*) FROM t WHERE ...
+		rest := q[len("DELETE "):]
+		if strings.HasPrefix(strings.ToUpper(rest), "FROM ") {
+			return "SELECT COUNT(*) " + rest
+		}
+	}
+	if strings.HasPrefix(up, "UPDATE ") {
+		// UPDATE t SET col=val WHERE ... → SELECT COUNT(*) FROM t WHERE ...
+		// Extract table name and WHERE clause.
+		tokens := strings.Fields(q)
+		if len(tokens) < 2 { return "" }
+		table := tokens[1]
+		whereIdx := strings.Index(strings.ToUpper(q), " WHERE ")
+		if whereIdx >= 0 {
+			return fmt.Sprintf("SELECT COUNT(*) FROM `%s` WHERE %s",
+				escIdent(table), q[whereIdx+7:])
+		}
+		return fmt.Sprintf("SELECT COUNT(*) FROM `%s`", escIdent(table))
+	}
+	return ""
+}
+
+// dmlToSampleSQL rewrites a DML into a SELECT * LIMIT 5 to preview affected rows.
+func dmlToSampleSQL(q string) string {
+	up := strings.ToUpper(strings.TrimSpace(q))
+
+	if strings.HasPrefix(up, "DELETE FROM") || strings.HasPrefix(up, "DELETE ") {
+		rest := q[len("DELETE "):]
+		if strings.HasPrefix(strings.ToUpper(rest), "FROM ") {
+			return "SELECT * " + rest + " LIMIT 5"
+		}
+	}
+	if strings.HasPrefix(up, "UPDATE ") {
+		tokens := strings.Fields(q)
+		if len(tokens) < 2 { return "" }
+		table := tokens[1]
+		whereIdx := strings.Index(strings.ToUpper(q), " WHERE ")
+		if whereIdx >= 0 {
+			return fmt.Sprintf("SELECT * FROM `%s` WHERE %s LIMIT 5",
+				escIdent(table), q[whereIdx+7:])
+		}
+		return fmt.Sprintf("SELECT * FROM `%s` LIMIT 5", escIdent(table))
+	}
+	return ""
+}

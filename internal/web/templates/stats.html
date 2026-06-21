@@ -1,0 +1,114 @@
+{{define "dash_title"}}Server Stats{{end}}
+{{define "dash_body"}}
+<div class="dash-content-header">
+  <div class="content-header-title">Server Statistics</div>
+  <div class="content-header-actions">
+    <span class="stats-refresh-label" id="js-stats-refresh-label">live · updates every 3s</span>
+  </div>
+</div>
+
+{{if .SnapErr}}
+<div class="alert alert-error" style="margin:16px">{{.SnapErr}}</div>
+{{end}}
+
+{{if .Snap}}
+<div class="stats-grid">
+
+  <div class="stat-card" id="js-cpu-card">
+    <div class="stat-card-label">CPU Usage</div>
+    <div class="stat-gauge-wrap">
+      <div class="stat-gauge-bar">
+        <div class="stat-gauge-fill" id="js-cpu-bar" style="width:{{fmtPct .Snap.CPU}}%"></div>
+      </div>
+      <span class="stat-gauge-pct" id="js-cpu-pct">{{fmtPct .Snap.CPU}}%</span>
+    </div>
+    <div class="stat-card-sub" id="js-cpu-sub">across all cores</div>
+  </div>
+
+  <div class="stat-card" id="js-mem-card">
+    <div class="stat-card-label">Memory</div>
+    <div class="stat-gauge-wrap">
+      <div class="stat-gauge-bar">
+        <div class="stat-gauge-fill" id="js-mem-bar" style="width:{{fmtPct .Snap.MemPercent}}%"></div>
+      </div>
+      <span class="stat-gauge-pct" id="js-mem-pct">{{fmtPct .Snap.MemPercent}}%</span>
+    </div>
+    <div class="stat-card-sub" id="js-mem-sub">
+      {{call .FmtBytes .Snap.MemUsed}} used of {{call .FmtBytes .Snap.MemTotal}}
+    </div>
+  </div>
+
+  <div class="stat-card" id="js-disk-card">
+    <div class="stat-card-label">Disk (root /)</div>
+    <div class="stat-gauge-wrap">
+      <div class="stat-gauge-bar">
+        <div class="stat-gauge-fill" id="js-disk-bar" style="width:{{fmtPct .Snap.DiskPercent}}%"></div>
+      </div>
+      <span class="stat-gauge-pct" id="js-disk-pct">{{fmtPct .Snap.DiskPercent}}%</span>
+    </div>
+    <div class="stat-card-sub" id="js-disk-sub">
+      {{call .FmtBytes .Snap.DiskUsed}} used of {{call .FmtBytes .Snap.DiskTotal}}
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-card-label">Uptime</div>
+    <div class="stat-big-value" id="js-uptime">{{call .FmtUptime .Snap.Uptime}}</div>
+  </div>
+
+</div>
+{{end}}
+
+<div class="dash-content-header" style="margin-top:24px">
+  <div class="content-header-title">MySQL Process List</div>
+</div>
+
+{{if .ProcessList}}
+{{if .ProcessList.Err}}
+<div class="alert alert-error" style="margin:16px">{{.ProcessList.Err}}</div>
+{{else if .ProcessList.Rows}}
+<div class="table-wrap">
+  <table class="data-table">
+    <thead>
+      <tr>{{range .ProcessList.Columns}}<th>{{.}}</th>{{end}}</tr>
+    </thead>
+    <tbody>
+      {{range .ProcessList.Rows}}
+      <tr>{{range .}}<td class="mono">{{.}}</td>{{end}}</tr>
+      {{end}}
+    </tbody>
+  </table>
+</div>
+{{else}}
+<p class="empty-state" style="padding:16px">No active processes.</p>
+{{end}}
+{{end}}
+
+<script>
+(function() {
+  function gauge(barId, pctId, subId, pct, used, total) {
+    var bar = document.getElementById(barId);
+    var pctEl = document.getElementById(pctId);
+    var subEl = document.getElementById(subId);
+    if (!bar || !pctEl) return;
+    var p = Math.min(100, Math.max(0, pct));
+    bar.style.width = p.toFixed(1) + '%';
+    bar.className = 'stat-gauge-fill' + (p > 90 ? ' danger' : p > 70 ? ' warn' : '');
+    pctEl.textContent = p.toFixed(1) + '%';
+    if (subEl && used && total) subEl.textContent = used + ' used of ' + total;
+  }
+
+  function poll() {
+    fetch('/api/stats').then(function(r) { return r.json(); }).then(function(d) {
+      gauge('js-cpu-bar', 'js-cpu-pct', null, d.cpu, null, null);
+      gauge('js-mem-bar', 'js-mem-pct', 'js-mem-sub', d.mem_pct, d.mem_used_fmt, d.mem_total_fmt);
+      gauge('js-disk-bar', 'js-disk-pct', 'js-disk-sub', d.disk_pct, d.disk_used_fmt, d.disk_total_fmt);
+      var up = document.getElementById('js-uptime');
+      if (up) up.textContent = d.uptime_fmt;
+    }).catch(function() {});
+  }
+
+  setInterval(poll, 3000);
+})();
+</script>
+{{end}}

@@ -350,6 +350,7 @@
     <a href="#security"          class="docs-sidebar-link">Security model</a>
     <a href="#env"               class="docs-sidebar-link">Environment vars</a>
     <a href="#build"             class="docs-sidebar-link">Building from source</a>
+    <a href="#uninstall"         class="docs-sidebar-link">Uninstall</a>
   </div>
 </aside>
 
@@ -1190,6 +1191,51 @@ flashaccess ALL=(root) NOPASSWD: /usr/sbin/ufw</pre>
 <pre><span class="prompt">$ </span>VER=v1.0.1   <span class="comment"># replace with the version you are building</span>
 <span class="prompt">$ </span>GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=${VER}" -o dist/flashaccess_${VER}_linux_amd64 ./cmd/flashaccess
 <span class="prompt">$ </span>GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=${VER}" -o dist/flashaccess_${VER}_linux_arm64 ./cmd/flashaccess</pre>
+
+  <h2 id="uninstall">Uninstall</h2>
+  <p>These steps remove FlashAccess and everything it installed. Run them as root or with <code>sudo</code>.</p>
+
+  <h3>1 — Stop and disable the service</h3>
+<pre><span class="prompt">$ </span>sudo systemctl stop flashaccess
+<span class="prompt">$ </span>sudo systemctl disable flashaccess</pre>
+
+  <h3>2 — Remove the binary</h3>
+<pre><span class="prompt">$ </span>sudo rm /usr/local/bin/flashaccess</pre>
+
+  <h3>3 — Remove the systemd unit</h3>
+<pre><span class="prompt">$ </span>sudo rm /etc/systemd/system/flashaccess.service
+<span class="prompt">$ </span>sudo systemctl daemon-reload</pre>
+
+  <h3>4 — Remove application data</h3>
+  <p>This deletes the master encryption key, all session records, and the encrypted config (admin password hash, DB credentials, mode setting).</p>
+<pre><span class="prompt">$ </span>sudo rm -rf /var/lib/flashaccess</pre>
+
+  <h3>5 — Remove the system user</h3>
+<pre><span class="prompt">$ </span>sudo userdel flashaccess</pre>
+
+  <h3>6 — Remove the sudoers rule</h3>
+  <p>The installer created <code>/etc/sudoers.d/flashaccess-ufw</code> so the service user can manage UFW rules without a password.</p>
+<pre><span class="prompt">$ </span>sudo rm /etc/sudoers.d/flashaccess-ufw</pre>
+
+  <h3>7 — Check UFW rules <span class="optional-badge">optional</span></h3>
+  <p>FlashAccess removes its own UFW port rules when a session ends cleanly. If a session was interrupted mid-flight, stale rules may remain. Inspect and delete any <code>ALLOW</code> rules for ports you don't recognise:</p>
+<pre><span class="prompt">$ </span>sudo ufw status numbered
+<span class="comment"># Remove a stale rule by its number, e.g.:</span>
+<span class="prompt">$ </span>sudo ufw delete 5</pre>
+
+  <h3>8 — Remove nginx config <span class="optional-badge">optional</span></h3>
+  <p>If you followed the <a href="#nginx">nginx + Cloudflare TLS</a> guide:</p>
+<pre><span class="prompt">$ </span>sudo rm /etc/nginx/sites-available/flashaccess
+<span class="prompt">$ </span>sudo rm /etc/nginx/sites-enabled/flashaccess
+<span class="prompt">$ </span>sudo systemctl reload nginx</pre>
+  <p>Also remove the Cloudflare origin certificate and key you placed in <code>/etc/ssl/cloudflare/</code> if you created them solely for FlashAccess:</p>
+<pre><span class="prompt">$ </span>sudo rm /etc/ssl/cloudflare/flashaccess.pem /etc/ssl/cloudflare/flashaccess.key</pre>
+
+  <h3>Verify everything is gone</h3>
+<pre><span class="prompt">$ </span>which flashaccess             <span class="comment"># should return nothing</span>
+<span class="prompt">$ </span>systemctl status flashaccess  <span class="comment"># should say "Unit flashaccess.service could not be found"</span>
+<span class="prompt">$ </span>id flashaccess                <span class="comment"># should return "no such user"</span>
+<span class="prompt">$ </span>ls /var/lib/flashaccess       <span class="comment"># should return "No such file or directory"</span></pre>
 
 
 </main>

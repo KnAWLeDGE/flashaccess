@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # FlashAccess installer — Ubuntu 24.04
 # Usage:  curl -fsSL https://raw.githubusercontent.com/KnAWLeDGE/flashaccess/main/install.sh | bash
-# Or:     bash install.sh [--version v1.0.0] [--addr 127.0.0.1:7432]
+# Or:     bash install.sh [--version v1.0.0] [--addr 127.0.0.1:7432] [--mode strict|unrestricted] [--fresh]
 set -euo pipefail
 
 REPO="KnAWLeDGE/flashaccess"
@@ -14,12 +14,14 @@ NGINX_CONF="/etc/nginx/sites-available/flashaccess"
 # ── Defaults ───────────────────────────────────────────────────
 VERSION="${FA_VERSION:-latest}"
 ADDR="${FA_ADDR:-127.0.0.1:7432}"
+MODE="${FA_MODE:-}"          # set via --mode flag or wizard
 
 # ── Colour helpers ─────────────────────────────────────────────
-G='\033[0;32m'; Y='\033[1;33m'; R='\033[0;31m'; N='\033[0m'
+G='\033[0;32m'; Y='\033[1;33m'; R='\033[0;31m'; B='\033[0;34m'; N='\033[0m'
 info()  { echo -e "${G}[flashaccess]${N} $*"; }
 warn()  { echo -e "${Y}[warning]${N} $*"; }
 error() { echo -e "${R}[error]${N} $*" >&2; exit 1; }
+step()  { echo -e "\n${B}▶ $*${N}"; }
 
 # ── Root check ─────────────────────────────────────────────────
 [[ $EUID -eq 0 ]] || error "Run as root (sudo bash install.sh)"
@@ -29,6 +31,8 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --version) VERSION="$2"; shift 2 ;;
         --addr)    ADDR="$2";    shift 2 ;;
+        --mode)    MODE="$2";    shift 2 ;;
+        --fresh)   FRESH="yes";  shift ;;
         *) warn "Unknown argument: $1"; shift ;;
     esac
 done
@@ -59,7 +63,6 @@ chmod +x "$TMP"
 # Quick sanity check
 "$TMP" version || error "Downloaded binary failed version check"
 
-# Install
 install -m 0755 "$TMP" "${INSTALL_DIR}/flashaccess"
 rm -f "$TMP"
 info "Binary installed to ${INSTALL_DIR}/flashaccess"
@@ -72,10 +75,43 @@ fi
 
 # ── sudoers rule for ufw ───────────────────────────────────────
 SUDOERS_FILE="/etc/sudoers.d/flashaccess-ufw"
-if [[ ! -f "$SUDOERS_FILE" ]]; then
-    echo "flashaccess ALL=(root) NOPASSWD: /usr/sbin/ufw" > "$SUDOERS_FILE"
-    chmod 440 "$SUDOERS_FILE"
-    info "sudoers rule written: ${SUDOERS_FILE}"
+UFW_BIN=$(readlink -f "$(which ufw 2>/dev/null)" 2>/dev/null || echo "/usr/sbin/ufw")
+echo "${SERVICE_USER} ALL=(root) NOPASSWD: ${UFW_BIN}" > "$SUDOERS_FILE"
+chmod 440 "$SUDOERS_FILE"
+info "sudoers rule written: ${SUDOERS_FILE} (${UFW_BIN})"
+
+# ── Fresh install option ───────────────────────────────────────
+FRESH="${FA_FRESH:-}"   # set to "yes" to skip the prompt and always wipe
+
+if [[ -d "$DATA_DIR" ]] && [[ -n "$(ls -A "$DATA_DIR" 2>/dev/null)" ]]; then
+    if [[ "$FRESH" != "yes" ]]; then
+        if [[ -t 0 ]]; then
+            echo
+            warn "Existing FlashAccess data found at ${DATA_DIR}"
+            echo "  A fresh install will DELETE all existing configuration,"
+            echo "  session history, and the master encryption key."
+            echo "  You will need to re-run 'flashaccess connect' afterwards."
+            echo
+            read -rp "Start fresh (wipe ${DATA_DIR})? [y/N]: " FRESH_ANS
+            case "${FRESH_ANS,,}" in
+                y|yes) FRESH="yes" ;;
+                *)     FRESH="no" ;;
+            esac
+        else
+            FRESH="no"
+            info "Non-interactive install — preserving existing data at ${DATA_DIR}"
+        fi
+    fi
+
+    if [[ "$FRESH" == "yes" ]]; then
+        # Stop the service first if running
+        if systemctl is-active --quiet flashaccess 2>/dev/null; then
+            info "Stopping flashaccess service before wiping data…"
+            systemctl stop flashaccess
+        fi
+        rm -rf "$DATA_DIR"
+        info "Wiped ${DATA_DIR} for fresh install"
+    fi
 fi
 
 # ── Data directory ─────────────────────────────────────────────
@@ -136,12 +172,55 @@ if systemctl is-active --quiet flashaccess; then
     exit 0
 fi
 
+# ── Mode wizard (fresh install only) ──────────────────────────
+step "Installation Mode"
+echo
+echo "  unrestricted (default) — Full CRUD access:"
+echo "    • Manage MySQL users (create, drop, set privileges)"
+echo "    • Create and drop databases"
+echo "    • Browse, query, and modify all data"
+echo "    • Ideal for experienced operators and dev servers"
+echo
+echo "  strict — Safe operations only:"
+echo "    • Browse tables and run queries"
+echo "    • No user management, no database drops"
+echo "    • Ideal for production environments or shared servers"
+echo
+echo "  You can change this later with: flashaccess mode <strict|unrestricted>"
+echo
+
+if [[ -z "$MODE" ]]; then
+    # Only ask interactively if stdin is a terminal
+    if [[ -t 0 ]]; then
+        read -rp "Enable strict mode? [y/N]: " MODE_ANS
+        case "${MODE_ANS,,}" in
+            y|yes) MODE="strict" ;;
+            *)     MODE="unrestricted" ;;
+        esac
+    else
+        MODE="unrestricted"
+        info "Non-interactive install — defaulting to unrestricted mode"
+    fi
+fi
+
+case "$MODE" in
+    strict|unrestricted) ;;
+    *) error "Invalid mode '${MODE}' — use 'strict' or 'unrestricted'" ;;
+esac
+
+info "Mode: ${MODE}"
+
 # ── Done (fresh install) ────────────────────────────────────────
 echo
 info "Installation complete."
 echo -e "${G}Next steps:${N}"
-echo "  1. Run the configuration wizard:"
+echo "  1. Run the configuration wizard (sets MySQL credentials + admin password):"
 echo "       flashaccess connect"
+echo
+echo "     When prompted for mode, choose: ${MODE}"
+echo "     Or pass the FA_MODE environment variable to skip the prompt:"
+echo "       FA_MODE=${MODE} flashaccess connect"
+echo
 echo "  2. Fix file ownership (connect runs as root; service runs as ${SERVICE_USER}):"
 echo "       chown -R ${SERVICE_USER}:${SERVICE_USER} ${DATA_DIR}"
 echo "  3. Start and enable the service:"

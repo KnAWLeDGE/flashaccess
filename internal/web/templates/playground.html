@@ -1,0 +1,131 @@
+{{define "dash_title"}}Playground{{end}}
+{{define "dash_body"}}
+<div class="dash-content-header">
+  <div class="content-header-left">
+    <div class="content-header-title">Playground</div>
+  </div>
+</div>
+
+{{if .Error}}
+<div class="alert alert-error" style="margin-bottom:16px">{{.Error}}</div>
+{{end}}
+{{if .Notice}}
+<div class="alert alert-ok" style="margin-bottom:16px">{{.Notice}}</div>
+{{end}}
+
+{{if .PlaygroundDB}}
+<div class="panel playground-active-panel" style="margin-bottom:20px">
+  <div class="panel-hd playground-panel-hd">
+    <span class="playground-badge">▶ Playground Active</span>
+    <span class="playground-db-name mono">{{.PlaygroundDB}}</span>
+  </div>
+  <div class="panel-bd">
+    <p class="panel-desc">Your playground database is live. Explore it freely — nothing here affects your production databases.</p>
+    <div class="form-actions" style="margin-top:8px">
+      <a href="/dashboard/{{.PlaygroundDB}}" class="btn btn-primary btn-sm">Open Playground →</a>
+      <form method="POST" action="/playground/drop" style="display:inline"
+            onsubmit="return confirm('Drop playground database {{.PlaygroundDB}}?\n\nAll data will be permanently deleted.')">
+        <button type="submit" class="btn btn-danger btn-sm">Drop Playground</button>
+      </form>
+    </div>
+  </div>
+</div>
+{{end}}
+
+<div class="panel" style="margin-bottom:20px">
+  <div class="panel-hd">{{if .PlaygroundDB}}Replace Playground{{else}}Create Playground{{end}}</div>
+  <div class="panel-bd">
+    <p class="panel-desc">
+      A playground is an isolated copy of a database (or a pre-built sample) that lives for the duration of this session.
+      Use it to safely experiment with queries, test schema changes, or learn FlashAccess without touching live data.
+      {{if .PlaygroundDB}}Creating a new playground will replace the existing one.{{end}}
+    </p>
+
+    <form method="POST" action="/playground/create" id="js-pg-form" autocomplete="off">
+      <div class="field" style="margin-bottom:16px">
+        <label class="field-label">Playground type</label>
+        <div class="radio-group" style="margin-top:6px">
+          <label class="radio-option">
+            <input type="radio" name="mode" value="generate" checked id="pg-mode-generate" onchange="pgModeChange()">
+            <span class="radio-label">
+              <strong>Sample database</strong> — FlashAccess generates an e-commerce schema with realistic data rows (customers, products, orders). Great for learning SQL.
+            </span>
+          </label>
+          <label class="radio-option" style="margin-top:8px">
+            <input type="radio" name="mode" value="clone" id="pg-mode-clone" onchange="pgModeChange()">
+            <span class="radio-label">
+              <strong>Clone existing database</strong> — Copy a live database (schema + data) into the playground. Use this to safely preview changes before applying them to production.
+            </span>
+          </label>
+        </div>
+      </div>
+
+      <div class="field" id="pg-source-field" style="display:none;margin-bottom:16px">
+        <label class="field-label" for="pg-source-db">Source database</label>
+        <select id="pg-source-db" name="source_db" class="field-select">
+          {{range .Databases}}
+          {{if not (hasPfx . "_fa_playground_")}}
+          <option value="{{.}}">{{.}}</option>
+          {{end}}
+          {{end}}
+        </select>
+        <div class="field-hint">The selected database will be copied into the playground. Your live database is not modified.</div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary" id="pg-submit-btn">
+          {{if .PlaygroundDB}}Replace Playground{{else}}Create Playground{{end}} →
+        </button>
+        <span class="form-note" id="pg-loading" style="display:none">Creating playground… this may take a moment for large databases.</span>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-hd">What can I do with a playground?</div>
+  <div class="panel-bd">
+    <div class="pg-tip-grid">
+      <div class="pg-tip">
+        <div class="pg-tip-icon">⚡</div>
+        <div class="pg-tip-body">
+          <strong>Preview destructive queries</strong>
+          <p>Run <code class="inline-code">DELETE</code>, <code class="inline-code">UPDATE</code>, or <code class="inline-code">DROP</code> statements here first. See exactly what changes before touching the real thing.</p>
+        </div>
+      </div>
+      <div class="pg-tip">
+        <div class="pg-tip-icon">🎓</div>
+        <div class="pg-tip-body">
+          <strong>Learn SQL safely</strong>
+          <p>The sample database has foreign keys, indexes, and realistic data. A perfect sandbox for practicing joins, aggregations, and schema changes.</p>
+        </div>
+      </div>
+      <div class="pg-tip">
+        <div class="pg-tip-icon">🔬</div>
+        <div class="pg-tip-body">
+          <strong>Test schema migrations</strong>
+          <p>Clone your production database and run <code class="inline-code">ALTER TABLE</code> or migration files here to validate before deploying.</p>
+        </div>
+      </div>
+      <div class="pg-tip">
+        <div class="pg-tip-icon">🗑</div>
+        <div class="pg-tip-body">
+          <strong>Auto-cleanup</strong>
+          <p>The playground database is automatically dropped when your session ends. No cleanup required.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function pgModeChange() {
+  var clone = document.getElementById('pg-mode-clone').checked;
+  document.getElementById('pg-source-field').style.display = clone ? '' : 'none';
+}
+document.getElementById('js-pg-form').addEventListener('submit', function () {
+  document.getElementById('pg-submit-btn').disabled = true;
+  document.getElementById('pg-loading').style.display = '';
+});
+</script>
+{{end}}

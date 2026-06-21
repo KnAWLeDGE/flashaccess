@@ -1,18 +1,34 @@
 {{define "dash_title"}}{{.CurrentDB}}{{end}}
 {{define "dash_body"}}
 <div class="dash-content-header">
-  <div class="content-breadcrumb">
-    <a href="/dashboard">Databases</a>
-    <span class="breadcrumb-sep">/</span>
-    <span>{{.CurrentDB}}</span>
+  <div class="content-header-left">
+    <div class="content-breadcrumb">
+      <a href="/dashboard">Databases</a>
+      <span class="breadcrumb-sep">/</span>
+      <span>{{.CurrentDB}}</span>
+    </div>
+    <div class="content-header-title">{{.CurrentDB}}</div>
   </div>
-  <div class="content-header-title">{{.CurrentDB}}</div>
+  {{if eq .Mode "unrestricted"}}
+  <div class="content-header-actions">
+    <form method="POST" action="/databases/drop" id="drop-db-form" style="display:inline">
+      <input type="hidden" name="name" value="{{.CurrentDB}}">
+      <button type="button" class="btn btn-danger btn-sm"
+        onclick="uiDropDB(this, '{{.CurrentDB}}')">Drop Database</button>
+    </form>
+  </div>
+  {{end}}
 </div>
 
 <div class="table-toolbar">
   <span class="table-count">{{len .Tables}} tables</span>
   <a href="/dashboard/{{.CurrentDB}}/query" class="btn btn-outline btn-sm">SQL Query</a>
 </div>
+
+<div class="ai-toolbar">
+  <button class="btn btn-ai btn-sm" id="fa-index-advisor-btn" onclick="faIndexAdvisor('{{.CurrentDB}}')">&#10022; Analyze Indexes</button>
+</div>
+<div class="ai-panel" id="fa-index-advisor-panel" style="display:none"></div>
 
 {{if .Tables}}
 <table class="data-table">
@@ -35,12 +51,27 @@
       <td class="row-actions">
         <a href="/dashboard/{{$.CurrentDB}}/{{.Name}}" class="btn btn-ghost btn-xs">Browse</a>
         <a href="/dashboard/{{$.CurrentDB}}/{{.Name}}/structure" class="btn btn-ghost btn-xs">Structure</a>
+        <a href="/dashboard/{{$.CurrentDB}}/query?q=SELECT+*+FROM+{{.Name}}+LIMIT+100" class="btn btn-ghost btn-xs">Query</a>
       </td>
     </tr>
     {{end}}
   </tbody>
 </table>
 {{else}}
-<p class="empty-state">No tables in this database.</p>
+<p class="empty-state">No tables in this database. <a href="/dashboard/{{.CurrentDB}}/query">Run a SQL query</a> to create some.</p>
 {{end}}
+
+<script>
+function uiDropDB(btn, db) {
+  if (!FAI.needsConfirmation('user', 'ddl', -1)) {
+    btn.closest('form').submit();
+    return;
+  }
+  FAI.confirm(
+    'Drop Database',
+    '<p>Permanently drop <strong>' + db + '</strong> and ALL its tables?</p>' +
+    '<p style="color:var(--err-text);font-weight:600">This cannot be undone.</p>'
+  ).then(function(ok) { if (ok) btn.closest('form').submit(); });
+}
+</script>
 {{end}}

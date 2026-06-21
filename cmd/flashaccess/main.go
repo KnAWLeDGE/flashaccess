@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -37,6 +38,9 @@ func main() {
 		return
 	case "connect":
 		cmdConnect()
+		return
+	case "mode":
+		cmdMode(os.Args[2:])
 		return
 	}
 
@@ -94,12 +98,34 @@ func main() {
 }
 
 // ── connect ───────────────────────────────────────────────────
-// Interactive wizard: DB config + admin password setup.
 func cmdConnect() {
 	fmt.Println("FlashAccess — initial configuration")
 	fmt.Println(strings.Repeat("─", 44))
 
 	r := bufio.NewReader(os.Stdin)
+
+	// ── Fresh install option ──────────────────────────────────────
+	store := config.NewStore(config.DefaultDir)
+	if _, err := store.Load(); err == nil {
+		// Config already exists — offer to wipe and start fresh.
+		fmt.Println()
+		fmt.Println("⚠  Existing configuration found.")
+		fmt.Println("   A fresh install will delete all existing data (config, sessions,")
+		fmt.Println("   master key) from", config.DefaultDir)
+		fmt.Println("   The flashaccess service will be stopped if it is running.")
+		fmt.Println()
+		if promptYN(r, "Start fresh (delete existing data)?", false) {
+			// Stop the service if it is running.
+			_ = stopService()
+			if err := os.RemoveAll(config.DefaultDir); err != nil {
+				fatal(fmt.Errorf("remove data dir: %w", err))
+			}
+			fmt.Println("Wiped", config.DefaultDir)
+		} else {
+			fmt.Println("Keeping existing data — re-running configuration will overwrite settings.")
+		}
+		fmt.Println()
+	}
 
 	host := prompt(r, "MySQL host", "127.0.0.1")
 	portStr := prompt(r, "MySQL port", "3306")
@@ -110,7 +136,6 @@ func cmdConnect() {
 	pwBytes, err := term.ReadPassword(int(os.Stdin.Fd()))
 	fmt.Println()
 	if err != nil {
-		// Fallback for non-terminal (e.g. piped input)
 		line, _ := r.ReadString('\n')
 		pwBytes = []byte(strings.TrimRight(line, "\r\n"))
 	}
@@ -137,6 +162,18 @@ func cmdConnect() {
 		fatal(fmt.Errorf("hash admin password: %w", err))
 	}
 
+	fmt.Println()
+	fmt.Println("Installation mode:")
+	fmt.Println("  unrestricted — full CRUD: manage MySQL users, create/drop databases,")
+	fmt.Println("                 configure remote access. Default and recommended for")
+	fmt.Println("                 experienced operators.")
+	fmt.Println("  strict       — browse and query only; dangerous operations are hidden.")
+	modeAns := promptYN(r, "Enable strict (safe) mode?", false)
+	mode := config.ModeUnrestricted
+	if modeAns {
+		mode = config.ModeStrict
+	}
+
 	var port int
 	fmt.Sscanf(portStr, "%d", &port)
 	if port == 0 {
@@ -153,12 +190,11 @@ func cmdConnect() {
 		},
 		ListenAddr:        listenAddr,
 		AdminPasswordHash: string(adminHash),
+		Mode:              mode,
 		Defaults: config.SessionDefaults{
-			Duration:    "30m",
+			Duration: "30m",
 		},
 	}
-
-	store := config.NewStore(config.DefaultDir)
 
 	// Verify DB connection before saving.
 	db, err := mysql.Open(cfg.DB)
@@ -172,8 +208,39 @@ func cmdConnect() {
 	}
 
 	fmt.Println()
-	fmt.Println("Configuration saved to", config.DefaultDir)
+	fmt.Printf("Configuration saved to %s (mode: %s)\n", config.DefaultDir, mode)
 	fmt.Println("Run `flashaccess serve` to start the dashboard.")
+}
+
+// ── mode ──────────────────────────────────────────────────────
+func cmdMode(args []string) {
+	store := config.NewStore(config.DefaultDir)
+	cfg, err := store.Load()
+	if err != nil {
+		fatal(fmt.Errorf("config not found — run `flashaccess connect` first: %w", err))
+	}
+
+	if len(args) == 0 {
+		fmt.Printf("Current mode: %s\n", cfg.EffectiveMode())
+		fmt.Println()
+		fmt.Println("Usage: flashaccess mode <strict|unrestricted>")
+		return
+	}
+
+	switch args[0] {
+	case config.ModeStrict:
+		cfg.Mode = config.ModeStrict
+	case config.ModeUnrestricted:
+		cfg.Mode = config.ModeUnrestricted
+	default:
+		fatal(fmt.Errorf("unknown mode %q — use 'strict' or 'unrestricted'", args[0]))
+	}
+
+	if err := store.Save(cfg); err != nil {
+		fatal(fmt.Errorf("save config: %w", err))
+	}
+	fmt.Printf("Mode set to: %s\n", cfg.Mode)
+	fmt.Println("Restart flashaccess serve for changes to take effect.")
 }
 
 // ── serve ─────────────────────────────────────────────────────
@@ -185,7 +252,7 @@ func cmdServe(cfg *config.Config, mgr *session.Manager, db *mysql.Manager, store
 	if addr == "" {
 		addr = "127.0.0.1:7432"
 	}
-	fmt.Println("FlashAccess dashboard listening on http://" + addr)
+	fmt.Printf("FlashAccess dashboard listening on http://%s (mode: %s)\n", addr, cfg.EffectiveMode())
 	srv := web.New(cfg, mgr, db, store)
 	if err := srv.ListenAndServe(addr); err != nil {
 		fatal(err)
@@ -221,7 +288,6 @@ func cmdSession(mgr *session.Manager, cfg *config.Config, args []string) {
 		fmt.Printf("Expires    : %s\n", sess.ExpiresAt.Format(time.RFC3339))
 
 	case "activate":
-		// Verify a session key from a given IP and print Navicat-ready credentials.
 		if len(args) < 4 {
 			fatal(fmt.Errorf("usage: flashaccess session activate <id> <key> <ip>"))
 		}
@@ -237,8 +303,8 @@ func cmdSession(mgr *session.Manager, cfg *config.Config, args []string) {
 		fmt.Println("Key verified.")
 		fmt.Printf("  Host     : %s\n", cfg.DB.Host)
 		fmt.Printf("  Port     : %d\n", cfg.DB.Port)
-		fmt.Printf("  User     : fa_%s\n", id[:8])
-		fmt.Printf("  Password : %s\n", key)
+		fmt.Printf("  User     : %s\n", sess.DBUser)
+		fmt.Printf("  Password : %s\n", sess.DBPassword)
 		fmt.Printf("  Expires  : %s\n", sess.ExpiresAt.Format(time.RFC3339))
 
 	case "end":
@@ -274,16 +340,4 @@ func prompt(r *bufio.Reader, label, def string) string {
 func fatal(err error) {
 	fmt.Fprintln(os.Stderr, "error:", err)
 	os.Exit(1)
-}
-
-func usage() {
-	fmt.Println(`FlashAccess — temporary IP-locked MySQL access
-
-Usage:
-  flashaccess connect              Interactive setup wizard
-  flashaccess serve                Start the web dashboard
-  flashaccess session new          Create a new session (inactive)
-  flashaccess session activate     Activate a session with a key and IP
-  flashaccess session end <id>     End a session immediately
-  flashaccess version              Print version`)
 }
