@@ -57,7 +57,11 @@ func (s *Server) handleSetupGet(w http.ResponseWriter, r *http.Request) {
 	}
 	cidr := s.cfg.Defaults.AllowedCIDR
 	if cidr == "" && detectedIP != "" {
-		cidr = detectedIP + "/32"
+		if net.ParseIP(detectedIP).To4() != nil {
+			cidr = detectedIP + "/32"
+		} else {
+			cidr = detectedIP + "/128"
+		}
 	}
 	s.render(w, "setup", setupData{
 		Defaults:   setupDefaults{Duration: s.cfg.Defaults.Duration, CIDR: cidr},

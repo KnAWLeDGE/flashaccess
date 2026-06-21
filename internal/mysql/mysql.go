@@ -95,7 +95,9 @@ func CIDRToHost(cidr string) (string, error) {
 		return ip.String(), nil
 	}
 	if ip.To4() == nil {
-		return "", fmt.Errorf("IPv6 ranges unsupported for MySQL host grants; use a single address")
+		// MySQL has no subnet notation for IPv6. Fall back to '%' and rely on the
+		// UFW firewall rule (which does support IPv6 CIDRs) for network enforcement.
+		return "%", nil
 	}
 	return fmt.Sprintf("%s/%s", ipnet.IP.String(), net.IP(ipnet.Mask).String()), nil
 }
