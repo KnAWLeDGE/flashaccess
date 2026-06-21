@@ -71,8 +71,14 @@ func run(bin string, args ...string) error {
 	if err != nil {
 		return fmt.Errorf("cannot find %s in PATH: %w", bin, err)
 	}
+	sudoPath, err := exec.LookPath("sudo")
+	if err != nil {
+		return fmt.Errorf("cannot find sudo in PATH: %w", err)
+	}
+	// Run as: sudo <ufw-path> -n <args>
+	// The flashaccess service user has a NOPASSWD sudoers rule for ufw.
 	// -n = non-interactive: fail immediately rather than prompt for confirmation.
-	cmd := exec.Command(fullPath, append([]string{"-n"}, args...)...)
+	cmd := exec.Command(sudoPath, append([]string{fullPath, "-n"}, args...)...)
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = &out
