@@ -52,6 +52,7 @@ func run(bin string, args ...string) error {
 	fullPath, err := exec.LookPath(bin)
 	if err != nil {
 		return fmt.Errorf("cannot find %s in PATH: %w", bin, err)
+	}
 	// -n = non-interactive: fail immediately rather than prompt for confirmation.
 	cmd := exec.Command(fullPath, append([]string{"-n"}, args...)...)
 	var out bytes.Buffer

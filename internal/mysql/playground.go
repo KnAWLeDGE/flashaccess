@@ -89,7 +89,6 @@ func (m *Manager) GenerateSampleDatabase(ctx context.Context, dst string) error 
 		return fmt.Errorf("sample target must be a playground database (got %q)", dst)
 	}
 
-	db := escIdent(dst)
 	stmts := []string{
 		// ── Schema ────────────────────────────────────────────────────────
 		fmt.Sprintf(`CREATE TABLE IF NOT EXISTS `+"`"+`%s`+"`"+`.`+"`"+`customers`+"`"+` (
