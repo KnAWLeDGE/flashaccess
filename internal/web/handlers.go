@@ -2,6 +2,7 @@ package web
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -33,8 +34,9 @@ func (s *Server) handleRoot(w http.ResponseWriter, r *http.Request) {
 // ── Setup wizard ───────────────────────────────────────────────────────────
 
 type setupData struct {
-	Error    string
-	Defaults setupDefaults
+	Error      string
+	Defaults   setupDefaults
+	DetectedIP string // IP the server sees for this request (helps user fill in CIDR)
 }
 
 type setupDefaults struct {
@@ -48,11 +50,25 @@ func (s *Server) handleSetupGet(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
 		return
 	}
+
+	// Auto-detect the client IP so the user knows what to put in the CIDR field.
+	detectedIP := ""
+	if ip := RealIP(r); ip != nil {
+		detectedIP = ip.String()
+	}
+
+	// Pre-fill CIDR with detected IP if there's no saved default.
+	cidr := s.cfg.Defaults.AllowedCIDR
+	if cidr == "" && detectedIP != "" {
+		cidr = detectedIP + "/32"
+	}
+
 	s.render(w, "setup", setupData{
 		Defaults: setupDefaults{
 			Duration: s.cfg.Defaults.Duration,
-			CIDR:     s.cfg.Defaults.AllowedCIDR,
+			CIDR:     cidr,
 		},
+		DetectedIP: detectedIP,
 	})
 }
 
@@ -167,7 +183,8 @@ func (s *Server) handleKeyShow(w http.ResponseWriter, r *http.Request) {
 // ── Gate (key verification) ─────────────────────────────────────────────────
 
 type gateData struct {
-	Error string
+	Error      string
+	DetectedIP string // shown when IP is rejected, to help the user debug
 }
 
 func (s *Server) handleGateGet(w http.ResponseWriter, r *http.Request) {
@@ -201,7 +218,18 @@ func (s *Server) handleGatePost(w http.ResponseWriter, r *http.Request) {
 	_, err := s.mgr.VerifyAccess(active.ID, key, clientIP)
 	if err != nil {
 		time.Sleep(400 * time.Millisecond)
-		s.render(w, "gate", gateData{Error: "invalid key or IP not allowed"})
+		detectedIP := ""
+		if clientIP != nil {
+			detectedIP = clientIP.String()
+		}
+		errMsg := "invalid key or IP not allowed"
+		if errors.Is(err, session.ErrIPRejected) {
+			errMsg = fmt.Sprintf(
+				"IP not allowed — server sees your IP as %s, but the session allows %s",
+				detectedIP, active.AllowedCIDR,
+			)
+		}
+		s.render(w, "gate", gateData{Error: errMsg, DetectedIP: detectedIP})
 		return
 	}
 
