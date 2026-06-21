@@ -1,0 +1,2238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FlashAccess — Design Concept</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   FLASHACCESS — DESIGN SYSTEM
+   Forest Green + Beigescale | No border-radius | Notched corners
+   IBM Plex type system | Professional / B2B / Developer
+   ============================================================ */
+
+:root {
+  /* === FOREST GREEN === */
+  --g950: #0A1A0B;
+  --g900: #0F2110;
+  --g800: #1A3A1C;
+  --g700: #2C5F2E;   /* PRIMARY */
+  --g600: #3D7A3F;
+  --g500: #4F9651;
+  --g400: #6BAD6D;   /* ACCENT */
+  --g300: #8DC48F;
+  --g200: #B5D9B7;
+  --g100: #D8EDD9;
+  --g50:  #EEF7EF;
+
+  /* === BEIGESCALE === */
+  --b950: #16120A;
+  --b900: #2A2210;
+  --b800: #3D3218;
+  --b700: #574826;
+  --b600: #7A6640;
+  --b500: #9E8A5C;
+  --b400: #BEA878;
+  --b300: #D4C4A0;
+  --b200: #E8DCC8;
+  --b100: #F2EBD8;
+  --b50:  #FAF7F0;
+  --b0:   #FEFCF8;
+
+  /* === SEMANTIC / ERROR / WARNING === */
+  --err-bg: #3D1818;
+  --err-text: #F0C8C8;
+  --err-accent: #C45050;
+  --warn-bg: #3D3018;
+  --warn-text: #F0E0B0;
+  --warn-accent: #C4A040;
+  --info-bg: #1A2A3D;
+  --info-text: #C8DCF0;
+
+  /* === TYPOGRAPHY === */
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'Inter', system-ui, sans-serif;
+  --font-cond: 'Inter', system-ui, sans-serif;
+
+  /* === SPACING === */
+  --notch-sm: 6px;
+  --notch-md: 10px;
+  --notch-lg: 14px;
+  --notch-xl: 20px;
+}
+
+/* ============================================================
+   RESET
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--b900);
+  background: var(--b50);
+  min-height: 100vh;
+}
+a { color: inherit; text-decoration: none; }
+button { cursor: pointer; font-family: inherit; }
+input, select, textarea { font-family: inherit; }
+
+/* ============================================================
+   META NAV (concept navigator — not part of tool UI)
+   ============================================================ */
+.meta-nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 9999;
+  background: #0A0A08;
+  border-bottom: 1px solid #2A2A20;
+  display: flex;
+  align-items: stretch;
+  padding: 0 16px;
+  gap: 2px;
+  height: 40px;
+}
+.meta-nav-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #5A5A48;
+  display: flex;
+  align-items: center;
+  padding-right: 16px;
+  margin-right: 4px;
+  border-right: 1px solid #2A2A20;
+}
+.meta-tab {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7A7A60;
+  background: transparent;
+  border: none;
+  padding: 0 16px;
+  height: 100%;
+  position: relative;
+  transition: color 0.12s;
+  transform: skewX(-6deg);
+}
+.meta-tab span { transform: skewX(6deg); display: inline-block; }
+.meta-tab:hover { color: #C8C8A0; background: #1A1A12; }
+.meta-tab.active { color: var(--g400); background: #0F1F10; }
+.meta-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--g500);
+}
+
+/* ============================================================
+   SCREENS
+   ============================================================ */
+.screen { display: none; padding-top: 40px; min-height: 100vh; }
+.screen.active { display: block; }
+
+/* ============================================================
+   CLIP PATH UTILITIES
+   ============================================================ */
+.notch-all-sm {
+  clip-path: polygon(
+    var(--notch-sm) 0%, calc(100% - var(--notch-sm)) 0%,
+    100% var(--notch-sm), 100% calc(100% - var(--notch-sm)),
+    calc(100% - var(--notch-sm)) 100%, var(--notch-sm) 100%,
+    0% calc(100% - var(--notch-sm)), 0% var(--notch-sm)
+  );
+}
+.notch-all {
+  clip-path: polygon(
+    var(--notch-md) 0%, calc(100% - var(--notch-md)) 0%,
+    100% var(--notch-md), 100% calc(100% - var(--notch-md)),
+    calc(100% - var(--notch-md)) 100%, var(--notch-md) 100%,
+    0% calc(100% - var(--notch-md)), 0% var(--notch-md)
+  );
+}
+.notch-tr {
+  clip-path: polygon(0% 0%, calc(100% - var(--notch-md)) 0%, 100% var(--notch-md), 100% 100%, 0% 100%);
+}
+.notch-br {
+  clip-path: polygon(0% 0%, 100% 0%, 100% calc(100% - var(--notch-md)), calc(100% - var(--notch-md)) 100%, 0% 100%);
+}
+.notch-tl {
+  clip-path: polygon(var(--notch-md) 0%, 100% 0%, 100% 100%, 0% 100%, 0% var(--notch-md));
+}
+.notch-corners-lg {
+  clip-path: polygon(
+    var(--notch-lg) 0%, calc(100% - var(--notch-lg)) 0%,
+    100% var(--notch-lg), 100% calc(100% - var(--notch-lg)),
+    calc(100% - var(--notch-lg)) 100%, var(--notch-lg) 100%,
+    0% calc(100% - var(--notch-lg)), 0% var(--notch-lg)
+  );
+}
+.notch-corners-xl {
+  clip-path: polygon(
+    var(--notch-xl) 0%, calc(100% - var(--notch-xl)) 0%,
+    100% var(--notch-xl), 100% calc(100% - var(--notch-xl)),
+    calc(100% - var(--notch-xl)) 100%, var(--notch-xl) 100%,
+    0% calc(100% - var(--notch-xl)), 0% var(--notch-xl)
+  );
+}
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  padding: 9px 20px;
+  border: none;
+  position: relative;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+  clip-path: polygon(
+    var(--notch-sm) 0%, calc(100% - var(--notch-sm)) 0%,
+    100% var(--notch-sm), 100% calc(100% - var(--notch-sm)),
+    calc(100% - var(--notch-sm)) 100%, var(--notch-sm) 100%,
+    0% calc(100% - var(--notch-sm)), 0% var(--notch-sm)
+  );
+}
+/* outer outline ring on hover */
+.btn::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  clip-path: polygon(
+    calc(var(--notch-sm) + 3px) 0%, calc(100% - var(--notch-sm) - 3px) 0%,
+    100% calc(var(--notch-sm) + 3px), 100% calc(100% - var(--notch-sm) - 3px),
+    calc(100% - var(--notch-sm) - 3px) 100%, calc(var(--notch-sm) + 3px) 100%,
+    0% calc(100% - var(--notch-sm) - 3px), 0% calc(var(--notch-sm) + 3px)
+  );
+  border: 1px solid transparent;
+  transition: border-color 0.15s, inset 0.15s;
+  pointer-events: none;
+}
+.btn:hover::after { border-color: currentColor; opacity: 0.5; inset: -4px; }
+
+.btn-primary { background: var(--g700); color: var(--b50); }
+.btn-primary:hover { background: var(--g600); }
+
+.btn-secondary { background: var(--b200); color: var(--b800); }
+.btn-secondary:hover { background: var(--b300); }
+
+.btn-outline {
+  background: transparent;
+  color: var(--g700);
+  border: 1.5px solid var(--g700);
+  clip-path: none;
+  padding: 8px 19px;
+}
+.btn-outline:hover { background: var(--g50); border-color: var(--g500); color: var(--g600); }
+
+.btn-ghost { background: transparent; color: var(--b600); border: 1.5px solid var(--b300); clip-path: none; padding: 8px 19px; }
+.btn-ghost:hover { border-color: var(--b500); color: var(--b700); background: var(--b100); }
+
+.btn-danger { background: #5C2020; color: #F5D0D0; }
+.btn-danger:hover { background: #7A2828; }
+
+.btn-lg { font-size: 12px; padding: 12px 28px; }
+.btn-sm { font-size: 10px; padding: 6px 14px; letter-spacing: 0.05em; }
+
+/* ============================================================
+   PANELS / CARDS
+   ============================================================ */
+.panel {
+  background: var(--b0);
+  border: 1px solid var(--b200);
+  margin-bottom: 16px;
+  position: relative;
+}
+
+.panel-hd {
+  background: var(--b900);
+  color: var(--b100);
+  padding: 8px 16px 8px 20px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+  /* angled cut on right side */
+  clip-path: polygon(0% 0%, 100% 0%, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0% 100%);
+}
+.panel-hd::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--g500);
+}
+/* diagonal stripes accent on right */
+.panel-hd::after {
+  content: '';
+  position: absolute;
+  right: 16px; top: 0; bottom: 0;
+  width: 40px;
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent 0px,
+    transparent 3px,
+    rgba(255,255,255,0.05) 3px,
+    rgba(255,255,255,0.05) 4px
+  );
+}
+.panel-hd .diamond {
+  width: 7px;
+  height: 7px;
+  background: var(--g400);
+  transform: rotate(45deg);
+  flex-shrink: 0;
+}
+.panel-bd { padding: 20px; }
+
+/* Panel with green header */
+.panel-hd-green {
+  background: var(--g800);
+  color: var(--g100);
+}
+.panel-hd-green::before { background: var(--g400); }
+
+/* ============================================================
+   SKEWED TABS
+   ============================================================ */
+.tab-strip {
+  display: flex;
+  background: var(--b200);
+  border-bottom: 2px solid var(--b300);
+  padding: 0 4px;
+  padding-top: 6px;
+  gap: 2px;
+  overflow-x: auto;
+}
+.tab-strip::-webkit-scrollbar { height: 0; }
+
+.tab-item {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--b500);
+  background: var(--b300);
+  border: none;
+  padding: 7px 18px;
+  position: relative;
+  transform: skewX(-10deg);
+  transition: background 0.12s, color 0.12s;
+  white-space: nowrap;
+}
+.tab-item span { display: inline-block; transform: skewX(10deg); }
+.tab-item:hover { background: var(--b100); color: var(--b700); }
+.tab-item.active {
+  background: var(--b0);
+  color: var(--g700);
+  z-index: 1;
+}
+.tab-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px; left: 0; right: 0;
+  height: 2px;
+  background: var(--g600);
+}
+
+/* ============================================================
+   FORM ELEMENTS
+   ============================================================ */
+.field { margin-bottom: 16px; }
+.field-label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--b600);
+  margin-bottom: 5px;
+}
+.field-hint {
+  font-size: 11px;
+  color: var(--b500);
+  margin-top: 4px;
+  font-family: var(--font-mono);
+}
+.field-input {
+  width: 100%;
+  background: var(--b100);
+  border: 1px solid var(--b300);
+  color: var(--b900);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 9px 12px;
+  outline: none;
+  transition: border-color 0.15s, background 0.15s;
+  clip-path: polygon(
+    var(--notch-sm) 0%, calc(100% - var(--notch-sm)) 0%,
+    100% var(--notch-sm), 100% calc(100% - var(--notch-sm)),
+    calc(100% - var(--notch-sm)) 100%, var(--notch-sm) 100%,
+    0% calc(100% - var(--notch-sm)), 0% var(--notch-sm)
+  );
+}
+.field-input:focus { border-color: var(--g600); background: var(--b50); }
+.field-input::placeholder { color: var(--b400); }
+
+.field-select {
+  width: 100%;
+  background: var(--b100);
+  border: 1px solid var(--b300);
+  color: var(--b900);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 9px 12px;
+  outline: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%239E8A5C' d='M0 0l6 8 6-8z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  transition: border-color 0.15s;
+}
+.field-select:focus { border-color: var(--g600); }
+
+/* Toggle switch */
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--b100);
+}
+.toggle-row:last-child { border-bottom: none; }
+.toggle-info { flex: 1; }
+.toggle-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--b800);
+}
+.toggle-desc {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--b500);
+  margin-top: 2px;
+}
+.toggle {
+  width: 38px;
+  height: 20px;
+  background: var(--b300);
+  position: relative;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-left: 16px;
+  clip-path: polygon(4px 0%, 100% 0%, calc(100% - 4px) 100%, 0% 100%);
+  transition: background 0.15s;
+}
+.toggle.on { background: var(--g600); }
+.toggle::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 14px;
+  height: 14px;
+  background: white;
+  transform: rotate(45deg);
+  transition: left 0.15s;
+}
+.toggle.on::after { left: 21px; }
+
+/* ============================================================
+   TYPOGRAPHY UTILITIES
+   ============================================================ */
+.mono { font-family: var(--font-mono); }
+.cond { font-family: var(--font-cond); }
+.text-muted { color: var(--b500); }
+.text-green { color: var(--g600); }
+.text-xs { font-size: 10px; }
+.text-sm { font-size: 11px; }
+.text-base { font-size: 13px; }
+.text-md { font-size: 15px; }
+.text-lg { font-size: 18px; }
+.text-xl { font-size: 22px; }
+.text-2xl { font-size: 28px; }
+.text-3xl { font-size: 36px; }
+.fw-500 { font-weight: 500; }
+.fw-600 { font-weight: 600; }
+.fw-700 { font-weight: 700; }
+.tracking-wide { letter-spacing: 0.06em; }
+.tracking-wider { letter-spacing: 0.12em; }
+.tracking-widest { letter-spacing: 0.2em; }
+.uppercase { text-transform: uppercase; }
+
+/* ============================================================
+   SECTION LABELS
+   ============================================================ */
+.section-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--b500);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--b200);
+}
+.section-label::before {
+  content: '';
+  width: 14px;
+  height: 2px;
+  background: var(--g500);
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   BADGES / STATUS
+   ============================================================ */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 8px 2px 6px;
+  border-left: 3px solid;
+}
+.badge-green { background: var(--g100); color: var(--g700); border-color: var(--g500); }
+.badge-beige { background: var(--b200); color: var(--b700); border-color: var(--b500); }
+.badge-red { background: #F5D8D8; color: #5C1818; border-color: #C44040; }
+.badge-amber { background: #F5E8C8; color: #5C4010; border-color: #C4A030; }
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--g500);
+  transform: rotate(45deg);
+  display: inline-block;
+  flex-shrink: 0;
+}
+.status-dot.inactive { background: var(--b400); }
+.status-dot.error { background: #C44040; }
+
+/* ============================================================
+   LAYOUT HELPERS
+   ============================================================ */
+.container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.items-center { align-items: center; }
+.items-start { align-items: flex-start; }
+.justify-between { justify-content: space-between; }
+.justify-end { justify-content: flex-end; }
+.gap-4 { gap: 4px; }
+.gap-8 { gap: 8px; }
+.gap-12 { gap: 12px; }
+.gap-16 { gap: 16px; }
+.gap-24 { gap: 24px; }
+.mt-4 { margin-top: 4px; }
+.mt-8 { margin-top: 8px; }
+.mt-12 { margin-top: 12px; }
+.mt-16 { margin-top: 16px; }
+.mt-24 { margin-top: 24px; }
+.mt-32 { margin-top: 32px; }
+.mb-4 { margin-bottom: 4px; }
+.mb-8 { margin-bottom: 8px; }
+.mb-12 { margin-bottom: 12px; }
+.mb-16 { margin-bottom: 16px; }
+.mb-24 { margin-bottom: 24px; }
+.mb-32 { margin-bottom: 32px; }
+.p-16 { padding: 16px; }
+.p-24 { padding: 24px; }
+
+/* ============================================================
+   TERMINAL / CODE BLOCK
+   ============================================================ */
+.terminal {
+  background: var(--b950);
+  color: var(--g300);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.8;
+  padding: 18px 22px;
+  clip-path: polygon(0% 0%, calc(100% - var(--notch-lg)) 0%, 100% var(--notch-lg), 100% 100%, 0% 100%);
+  position: relative;
+  overflow: hidden;
+}
+.terminal::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 3px; height: 100%;
+  background: var(--g700);
+}
+.term-prompt { color: var(--b500); }
+.term-cmd { color: var(--b100); }
+.term-comment { color: var(--b700); }
+.term-output { color: var(--g400); }
+.term-highlight { color: var(--g300); }
+
+/* ============================================================
+   DIVIDER
+   ============================================================ */
+.divider {
+  height: 1px;
+  background: linear-gradient(to right, var(--g600), var(--b200) 60%, transparent);
+  margin: 24px 0;
+}
+.divider-full {
+  height: 1px;
+  background: var(--b200);
+  margin: 24px 0;
+}
+
+/* ============================================================
+   KEY DISPLAY
+   ============================================================ */
+.key-block {
+  background: var(--b950);
+  color: var(--g300);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  padding: 14px 20px;
+  letter-spacing: 0.18em;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  clip-path: polygon(
+    var(--notch-md) 0%, calc(100% - var(--notch-md)) 0%,
+    100% var(--notch-md), 100% calc(100% - var(--notch-md)),
+    calc(100% - var(--notch-md)) 100%, var(--notch-md) 100%,
+    0% calc(100% - var(--notch-md)), 0% var(--notch-md)
+  );
+}
+
+/* ============================================================
+   DATA TABLE
+   ============================================================ */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+.data-table th {
+  background: var(--b200);
+  color: var(--b700);
+  font-weight: 600;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 8px 14px;
+  text-align: left;
+  border-bottom: 2px solid var(--g700);
+  white-space: nowrap;
+}
+.data-table td {
+  padding: 7px 14px;
+  border-bottom: 1px solid var(--b100);
+  color: var(--b800);
+  white-space: nowrap;
+}
+.data-table tbody tr:hover td { background: var(--b50); }
+.data-table tbody tr.selected td { background: var(--g50); color: var(--g800); }
+.data-table .type-tag {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--b500);
+  background: var(--b200);
+  padding: 1px 5px;
+}
+
+/* ============================================================
+   INFO ROW
+   ============================================================ */
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--b100);
+  gap: 16px;
+}
+.info-row:last-child { border-bottom: none; }
+.info-key {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--b500);
+  flex-shrink: 0;
+}
+.info-val {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--b800);
+  text-align: right;
+}
+
+/* ============================================================
+   SCROLLBAR
+   ============================================================ */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--b100); }
+::-webkit-scrollbar-thumb { background: var(--b300); }
+::-webkit-scrollbar-thumb:hover { background: var(--b400); }
+
+
+/* ============================================================
+   ▓▓▓  SCREEN 1: DESIGN SYSTEM  ▓▓▓
+   ============================================================ */
+#screen-design {
+  background: var(--b50);
+  padding-top: 40px;
+}
+.ds-section { padding: 32px; border-bottom: 1px solid var(--b200); }
+.ds-section:last-child { border-bottom: none; }
+.ds-title {
+  font-family: var(--font-cond);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--b400);
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.ds-title span {
+  background: var(--g700);
+  color: var(--g100);
+  font-size: 9px;
+  padding: 2px 7px;
+  letter-spacing: 0.1em;
+}
+
+/* color swatch */
+.swatch-row { display: flex; gap: 4px; margin-bottom: 8px; }
+.swatch {
+  flex: 1;
+  height: 44px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 4px 5px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: rgba(0,0,0,0.45);
+  position: relative;
+}
+.swatch.dark { color: rgba(255,255,255,0.5); }
+.swatch.primary-mark::after {
+  content: '▲';
+  position: absolute;
+  bottom: 2px;
+  right: 4px;
+  font-size: 7px;
+  color: rgba(255,255,255,0.6);
+}
+
+
+/* ============================================================
+   ▓▓▓  SCREEN 2: HOMEPAGE (PROMO SITE)  ▓▓▓
+   ============================================================ */
+.site-nav {
+  background: var(--b950);
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  padding: 0 40px;
+  border-bottom: 1px solid #2A2A1A;
+  position: relative;
+  z-index: 10;
+}
+.site-nav::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(to right, var(--g700), transparent 60%);
+}
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0;
+}
+.logo-mark {
+  width: 28px;
+  height: 28px;
+  background: var(--g700);
+  transform: rotate(45deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  position: relative;
+}
+.logo-mark::after {
+  content: '';
+  width: 11px;
+  height: 11px;
+  background: var(--g400);
+  transform: rotate(0deg);
+}
+.nav-wordmark {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--b50);
+  letter-spacing: -0.01em;
+}
+.nav-wordmark span { color: var(--g400); }
+.nav-links { display: flex; list-style: none; gap: 0; align-items: stretch; }
+.nav-links li a {
+  display: flex;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--b400);
+  padding: 0 18px;
+  height: 100%;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+.nav-links li a:hover { color: var(--b100); border-color: var(--g500); }
+.nav-links li a.active { color: var(--b50); border-color: var(--g400); }
+.nav-actions { display: flex; align-items: center; gap: 10px; padding: 12px 0; }
+
+/* HERO */
+.hero {
+  background: var(--b950);
+  padding: 72px 40px 64px;
+  position: relative;
+  overflow: hidden;
+}
+.hero::before {
+  /* large background grid */
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(44, 95, 46, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(44, 95, 46, 0.08) 1px, transparent 1px);
+  background-size: 32px 32px;
+  background-position: -1px -1px;
+  pointer-events: none;
+}
+.hero::after {
+  /* diagonal accent stripe block top-right */
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 380px; height: 100%;
+  background: linear-gradient(135deg, transparent 45%, rgba(26, 58, 28, 0.7) 45%);
+  pointer-events: none;
+}
+.hero-inner { position: relative; z-index: 1; max-width: 660px; }
+.hero-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--g400);
+  margin-bottom: 20px;
+}
+.hero-eyebrow::before { content: ''; width: 24px; height: 1px; background: var(--g500); }
+.hero h1 {
+  font-family: var(--font-cond);
+  font-size: 52px;
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--b50);
+  margin-bottom: 20px;
+}
+.hero h1 em {
+  font-style: normal;
+  color: var(--g400);
+  display: block;
+}
+.hero-desc {
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--b300);
+  margin-bottom: 36px;
+  max-width: 520px;
+}
+.hero-actions { display: flex; gap: 12px; align-items: center; }
+.hero-install {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-top: 36px;
+}
+.install-label {
+  background: var(--g700);
+  color: var(--g100);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 10px 14px;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
+}
+.install-cmd {
+  background: var(--b900);
+  color: var(--g300);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  padding: 10px 20px 10px 18px;
+  flex: 1;
+  letter-spacing: 0.03em;
+}
+.install-copy {
+  background: var(--b800);
+  color: var(--b300);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 10px 16px;
+  border: none;
+  transition: background 0.15s, color 0.15s;
+  position: relative;
+}
+.install-copy::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border: 1px solid transparent;
+  transition: border-color 0.15s;
+  pointer-events: none;
+}
+.install-copy:hover { background: var(--b700); color: var(--b100); }
+.install-copy:hover::after { border-color: var(--b500); }
+
+/* FEATURES STRIP */
+.features-strip {
+  background: var(--b100);
+  border-top: 2px solid var(--g700);
+  border-bottom: 1px solid var(--b200);
+  padding: 40px;
+}
+.feature-card {
+  background: var(--b0);
+  border: 1px solid var(--b200);
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+  clip-path: polygon(0% 0%, 100% 0%, 100% calc(100% - var(--notch-md)), calc(100% - var(--notch-md)) 100%, 0% 100%);
+}
+.feature-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 2px;
+  background: var(--g600);
+}
+.feature-num {
+  font-family: var(--font-mono);
+  font-size: 32px;
+  font-weight: 600;
+  color: var(--b200);
+  line-height: 1;
+  margin-bottom: 10px;
+}
+.feature-title {
+  font-family: var(--font-cond);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--b900);
+  margin-bottom: 6px;
+}
+.feature-desc { font-size: 12px; color: var(--b600); line-height: 1.6; }
+
+/* HOW IT WORKS */
+.how-section { background: var(--b50); padding: 48px 40px; }
+.how-step {
+  display: flex;
+  gap: 20px;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--b100);
+}
+.how-step:last-child { border-bottom: none; }
+.how-num {
+  width: 36px;
+  height: 36px;
+  background: var(--g700);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--g100);
+  flex-shrink: 0;
+  transform: rotate(45deg);
+  margin-top: 2px;
+}
+.how-num span { transform: rotate(-45deg); }
+.how-title {
+  font-family: var(--font-cond);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--b900);
+  margin-bottom: 4px;
+}
+.how-desc { font-size: 12px; color: var(--b600); line-height: 1.6; }
+
+/* FOOTER */
+.site-footer {
+  background: var(--b900);
+  color: var(--b400);
+  padding: 32px 40px;
+  border-top: 2px solid var(--g700);
+}
+.footer-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
+.footer-brand { font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: var(--b100); }
+.footer-brand small { display: block; font-size: 10px; font-weight: 400; color: var(--b500); margin-top: 4px; letter-spacing: 0.06em; }
+.footer-links { display: flex; gap: 24px; }
+.footer-links a { font-family: var(--font-mono); font-size: 11px; color: var(--b500); letter-spacing: 0.06em; transition: color 0.15s; }
+.footer-links a:hover { color: var(--b200); }
+.footer-bottom {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--b700);
+  padding-top: 20px;
+  border-top: 1px solid var(--b800);
+  display: flex;
+  justify-content: space-between;
+}
+
+
+/* ============================================================
+   ▓▓▓  SCREEN 3: SESSION SETUP  ▓▓▓
+   ============================================================ */
+.setup-layout {
+  min-height: calc(100vh - 40px);
+  background: var(--b100);
+}
+.setup-topbar {
+  background: var(--b950);
+  padding: 12px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 2px solid var(--g700);
+}
+.setup-topbar .wordmark {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--b50);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.setup-topbar .wordmark span { color: var(--g400); }
+.setup-progress {
+  display: flex;
+  align-items: stretch;
+  padding: 0 32px;
+  background: var(--b200);
+  border-bottom: 1px solid var(--b300);
+  overflow: hidden;
+}
+.progress-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px 12px 24px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--b500);
+  background: var(--b200);
+  position: relative;
+  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%, 14px 50%);
+  margin-right: 4px;
+  flex: 1;
+}
+.progress-step:first-child { clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%); }
+.progress-step.done { background: var(--g800); color: var(--g200); }
+.progress-step.active { background: var(--b900); color: var(--b50); }
+.step-dot {
+  width: 16px;
+  height: 16px;
+  background: currentColor;
+  transform: rotate(45deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  flex-shrink: 0;
+  opacity: 0.3;
+}
+.progress-step.done .step-dot,
+.progress-step.active .step-dot { opacity: 1; }
+.step-dot-inner { transform: rotate(-45deg); font-size: 8px; color: var(--b950); font-weight: 700; }
+
+.setup-body { padding: 32px; max-width: 820px; margin: 0 auto; }
+.setup-h2 {
+  font-family: var(--font-cond);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--b900);
+  margin-bottom: 4px;
+}
+.setup-sub { font-size: 13px; color: var(--b600); margin-bottom: 28px; }
+
+.ip-chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.ip-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--b200);
+  padding: 5px 10px 5px 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--b800);
+  clip-path: polygon(var(--notch-sm) 0, 100% 0, calc(100% - var(--notch-sm)) 100%, 0 100%);
+}
+.ip-chip-remove {
+  background: none;
+  border: none;
+  color: var(--b500);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+.ip-chip-remove:hover { color: #C44040; }
+
+.duration-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.dur-option {
+  background: var(--b0);
+  border: 1.5px solid var(--b300);
+  padding: 12px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  clip-path: polygon(var(--notch-sm) 0, calc(100% - var(--notch-sm)) 0, 100% var(--notch-sm), 100% calc(100% - var(--notch-sm)), calc(100% - var(--notch-sm)) 100%, var(--notch-sm) 100%, 0 calc(100% - var(--notch-sm)), 0 var(--notch-sm));
+}
+.dur-option:hover { border-color: var(--g500); background: var(--g50); }
+.dur-option.selected { border-color: var(--g600); background: var(--g50); }
+.dur-h { font-family: var(--font-mono); font-size: 20px; font-weight: 600; color: var(--b900); line-height: 1; }
+.dur-l { font-family: var(--font-mono); font-size: 10px; color: var(--b500); letter-spacing: 0.06em; text-transform: uppercase; margin-top: 3px; }
+
+.setup-footer {
+  background: var(--b200);
+  padding: 16px 32px;
+  border-top: 1px solid var(--b300);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+
+/* ============================================================
+   ▓▓▓  SCREEN 4: DASHBOARD  ▓▓▓
+   ============================================================ */
+.dash-layout {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 40px);
+  background: var(--b100);
+  overflow: hidden;
+}
+
+/* Dash top bar */
+.dash-topbar {
+  background: var(--b950);
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0;
+  border-bottom: 2px solid var(--g700);
+  flex-shrink: 0;
+  height: 44px;
+}
+.dash-topbar .wordmark {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--b50);
+  padding: 0 20px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-right: 1px solid #2A2A1A;
+  flex-shrink: 0;
+}
+.dash-topbar .wordmark span { color: var(--g400); }
+.dash-session-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 20px;
+  height: 100%;
+  flex: 1;
+}
+.session-chip {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--b300);
+  background: rgba(255,255,255,0.05);
+  padding: 4px 10px;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.session-timer {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--g400);
+  letter-spacing: 0.08em;
+}
+.dash-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
+  height: 100%;
+  border-left: 1px solid #2A2A1A;
+}
+
+/* Main body */
+.dash-body { display: flex; flex: 1; overflow: hidden; }
+
+/* Sidebar */
+.dash-sidebar {
+  width: 220px;
+  background: var(--b100);
+  border-right: 1px solid var(--b200);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.sidebar-hd {
+  background: var(--b200);
+  padding: 8px 14px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--b500);
+  border-bottom: 1px solid var(--b300);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.sidebar-hd-add {
+  width: 18px; height: 18px;
+  background: var(--b300);
+  border: none;
+  color: var(--b600);
+  font-size: 16px;
+  line-height: 18px;
+  text-align: center;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.sidebar-hd-add:hover { background: var(--b400); }
+.db-tree { flex: 1; overflow-y: auto; }
+.db-group-label {
+  padding: 10px 14px 4px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--b400);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.db-group-label::after { content: ''; flex: 1; height: 1px; background: var(--b200); }
+.db-node {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px 6px 24px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--b700);
+  cursor: pointer;
+  border-left: 2px solid transparent;
+  transition: background 0.1s, border-color 0.1s, color 0.1s;
+}
+.db-node:hover { background: var(--b200); border-left-color: var(--g500); color: var(--b900); }
+.db-node.active { background: var(--g50); border-left-color: var(--g600); color: var(--g700); font-weight: 600; }
+.db-node-icon {
+  width: 8px; height: 8px;
+  background: var(--b300);
+  flex-shrink: 0;
+  transform: rotate(45deg);
+}
+.db-node.active .db-node-icon { background: var(--g500); }
+.db-node-db {
+  padding-left: 14px;
+  font-weight: 600;
+  color: var(--b900);
+  background: var(--b200);
+  border-bottom: 1px solid var(--b300);
+  border-left: 2px solid var(--g600);
+}
+.db-node-db:hover { background: var(--b300); }
+
+/* Main content */
+.dash-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+.dash-toolbar {
+  background: var(--b200);
+  padding: 7px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--b300);
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+.toolbar-sep { width: 1px; height: 18px; background: var(--b300); margin: 0 2px; }
+
+.dash-tab-row {
+  background: var(--b200);
+  border-bottom: 2px solid var(--b300);
+  display: flex;
+  flex-shrink: 0;
+  padding: 0 4px;
+  padding-top: 5px;
+  gap: 2px;
+}
+
+.dash-content { flex: 1; overflow: auto; }
+.dash-pane { padding: 0; }
+
+/* Query editor */
+.query-editor {
+  border-bottom: 1px solid var(--b200);
+}
+.editor-hd {
+  background: var(--b200);
+  padding: 6px 14px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--b500);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--b300);
+}
+.editor-body {
+  background: var(--b950);
+  color: var(--b200);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 16px 20px;
+  min-height: 80px;
+  line-height: 1.8;
+}
+.sql-kw { color: var(--g300); font-weight: 600; }
+.sql-str { color: #C8A870; }
+.sql-num { color: #90C8A0; }
+.sql-com { color: var(--b600); font-style: italic; }
+.sql-field { color: var(--b100); }
+
+/* Stat bar */
+.dash-stat-bar {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: var(--b50);
+  border-bottom: 1px solid var(--b200);
+  flex-shrink: 0;
+}
+.stat-cell {
+  padding: 6px 16px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--b600);
+  border-right: 1px solid var(--b200);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.stat-cell strong { color: var(--b800); font-weight: 600; }
+.stat-cell-right { margin-left: auto; border-right: none; border-left: 1px solid var(--b200); }
+
+</style>
+</head>
+<body>
+
+<!-- META NAVIGATION (concept navigator) -->
+<nav class="meta-nav">
+  <div class="meta-nav-label">FlashAccess — Concept</div>
+  <button class="meta-tab active" onclick="showScreen('design')"><span>Design System</span></button>
+  <button class="meta-tab" onclick="showScreen('home')"><span>Homepage</span></button>
+  <button class="meta-tab" onclick="showScreen('session')"><span>Session Setup</span></button>
+  <button class="meta-tab" onclick="showScreen('dashboard')"><span>Dashboard</span></button>
+</nav>
+
+
+<!-- ============================================================
+     SCREEN 1: DESIGN SYSTEM
+     ============================================================ -->
+<section id="screen-design" class="screen active">
+  <div style="max-width: 1100px; margin: 0 auto; padding: 32px;">
+
+    <!-- Header -->
+    <div style="margin-bottom: 40px;">
+      <div style="font-family: var(--font-mono); font-size: 10px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--b400); margin-bottom: 8px; display: flex; align-items: center; gap: 10px;">
+        <span style="width: 20px; height: 1px; background: var(--g500); display: inline-block;"></span>
+        FlashAccess Design System v0.1
+      </div>
+      <h1 style="font-family: var(--font-cond); font-size: 36px; font-weight: 700; color: var(--b900); letter-spacing: -0.01em;">Visual Language Reference</h1>
+      <p style="color: var(--b600); margin-top: 8px; font-size: 13px; max-width: 520px;">Forest green primary · Beigescale neutrals · Notched geometry · IBM Plex typefaces · Professional / B2B</p>
+    </div>
+
+    <!-- COLOR PALETTE -->
+    <div class="ds-section" style="padding: 0 0 32px; margin-bottom: 32px; border-bottom: 1px solid var(--b200);">
+      <div class="ds-title">Color Palette <span>BEIGESCALE + FOREST GREEN</span></div>
+      <div style="margin-bottom: 20px;">
+        <div style="font-family: var(--font-mono); font-size: 10px; color: var(--b500); margin-bottom: 8px; letter-spacing: 0.08em; text-transform: uppercase;">Forest Green</div>
+        <div class="swatch-row">
+          <div class="swatch dark" style="background: var(--g950);">g950</div>
+          <div class="swatch dark" style="background: var(--g900);">g900</div>
+          <div class="swatch dark" style="background: var(--g800);">g800</div>
+          <div class="swatch dark primary-mark" style="background: var(--g700);">g700</div>
+          <div class="swatch dark" style="background: var(--g600);">g600</div>
+          <div class="swatch dark" style="background: var(--g500);">g500</div>
+          <div class="swatch" style="background: var(--g400);">g400</div>
+          <div class="swatch" style="background: var(--g300);">g300</div>
+          <div class="swatch" style="background: var(--g200);">g200</div>
+          <div class="swatch" style="background: var(--g100);">g100</div>
+          <div class="swatch" style="background: var(--g50);">g50</div>
+        </div>
+      </div>
+      <div>
+        <div style="font-family: var(--font-mono); font-size: 10px; color: var(--b500); margin-bottom: 8px; letter-spacing: 0.08em; text-transform: uppercase;">Beigescale</div>
+        <div class="swatch-row">
+          <div class="swatch dark" style="background: var(--b950);">b950</div>
+          <div class="swatch dark" style="background: var(--b900);">b900</div>
+          <div class="swatch dark" style="background: var(--b800);">b800</div>
+          <div class="swatch dark" style="background: var(--b700);">b700</div>
+          <div class="swatch dark" style="background: var(--b600);">b600</div>
+          <div class="swatch" style="background: var(--b500);">b500</div>
+          <div class="swatch" style="background: var(--b400);">b400</div>
+          <div class="swatch" style="background: var(--b300);">b300</div>
+          <div class="swatch" style="background: var(--b200);">b200</div>
+          <div class="swatch" style="background: var(--b100);">b100</div>
+          <div class="swatch" style="background: var(--b50);">b50</div>
+        </div>
+      </div>
+      <div style="margin-top: 20px; display: flex; gap: 12px;">
+        <div style="background: var(--err-bg); color: var(--err-text); padding: 8px 16px; font-family: var(--font-mono); font-size: 11px; border-left: 3px solid var(--err-accent);">Error / Danger</div>
+        <div style="background: var(--warn-bg); color: var(--warn-text); padding: 8px 16px; font-family: var(--font-mono); font-size: 11px; border-left: 3px solid var(--warn-accent);">Warning</div>
+        <div style="background: var(--info-bg); color: var(--info-text); padding: 8px 16px; font-family: var(--font-mono); font-size: 11px; border-left: 3px solid #4080C0;">Info</div>
+      </div>
+    </div>
+
+    <!-- TYPOGRAPHY -->
+    <div style="margin-bottom: 32px; padding-bottom: 32px; border-bottom: 1px solid var(--b200);">
+      <div class="ds-title">Typography <span>IBM PLEX SYSTEM</span></div>
+      <div class="grid-2" style="gap: 32px;">
+        <div>
+          <div style="font-family: var(--font-cond); font-size: 11px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--b400); margin-bottom: 16px;">IBM Plex Sans Condensed — Display</div>
+          <div style="font-family: var(--font-cond); font-size: 40px; font-weight: 700; color: var(--b900); line-height: 1.05; letter-spacing: -0.02em;">Temporary Root<br>Access. Secured.</div>
+          <div style="font-family: var(--font-cond); font-size: 22px; font-weight: 700; color: var(--b700); margin-top: 12px; letter-spacing: -0.01em;">Session-Based Database Control</div>
+        </div>
+        <div>
+          <div style="font-family: var(--font-cond); font-size: 11px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--b400); margin-bottom: 16px;">IBM Plex Sans — Body / UI</div>
+          <p style="font-size: 14px; line-height: 1.65; color: var(--b800); margin-bottom: 12px;">FlashAccess provides time-limited, IP-restricted root access to MySQL databases through a session-key system. Built for developers who need temporary administrative control without permanent exposure.</p>
+          <p style="font-size: 13px; color: var(--b600); line-height: 1.6;">Secondary body copy — explanatory text, feature descriptions, and contextual help runs at 13px in b600.</p>
+          <div style="margin-top: 16px;">
+            <div style="font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--b400); margin-bottom: 8px;">IBM Plex Mono — UI Labels / Code</div>
+            <div style="font-family: var(--font-mono); font-size: 13px; color: var(--b800);">SESSION-KEY · fa_8a3f2c91d4b7 · <span style="color: var(--g500);">ACTIVE</span></div>
+            <div style="font-family: var(--font-mono); font-size: 12px; color: var(--b600); margin-top: 4px;">Duration: 4h · Remaining: 3h 41m · IP: 93.184.216.34</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NOTCHED CORNERS & SHAPES -->
+    <div style="margin-bottom: 32px; padding-bottom: 32px; border-bottom: 1px solid var(--b200);">
+      <div class="ds-title">Geometry <span>NOTCHED CORNERS · NO BORDER-RADIUS</span></div>
+      <div style="display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start; margin-bottom: 24px;">
+        <div>
+          <div style="font-family: var(--font-mono); font-size: 9px; color: var(--b400); margin-bottom: 8px; letter-spacing: 0.1em; text-transform: uppercase;">notch-all-sm</div>
+          <div class="notch-all-sm" style="width: 100px; height: 60px; background: var(--b200); border: 1px solid var(--b400);"></div>
+        </div>
+        <div>
+          <div style="font-family: var(--font-mono); font-size: 9px; color: var(--b400); margin-bottom: 8px; letter-spacing: 0.1em; text-transform: uppercase;">notch-all</div>
+          <div class="notch-all" style="width: 100px; height: 60px; background: var(--b200); border: 1px solid var(--b400);"></div>
+        </div>
+        <div>
+          <div style="font-family: var(--font-mono); font-size: 9px; color: var(--b400); margin-bottom: 8px; letter-spacing: 0.1em; text-transform: uppercase;">notch-tr (panel header)</div>
+          <div class="notch-tr" style="width: 160px; height: 36px; background: var(--b900); display: flex; align-items: center; padding-left: 16px;">
+            <span style="font-family: var(--font-mono); font-size: 10px; color: var(--b100); letter-spacing: 0.1em; text-transform: uppercase;">Panel Header</span>
+          </div>
+        </div>
+        <div>
+          <div style="font-family: var(--font-mono); font-size: 9px; color: var(--b400); margin-bottom: 8px; letter-spacing: 0.1em; text-transform: uppercase;">Skewed Tab</div>
+          <div style="display: flex; gap: 2px; background: var(--b200); padding: 6px 4px 0; border-bottom: 2px solid var(--b300);">
+            <div style="transform: skewX(-10deg); background: var(--b0); padding: 7px 18px; font-family: var(--font-mono); font-size: 10px; font-weight: 600; color: var(--g700); letter-spacing: 0.07em; text-transform: uppercase; border-bottom: 2px solid var(--g600); position: relative; top: 2px;">
+              <span style="transform: skewX(10deg); display: inline-block;">Active</span>
+            </div>
+            <div style="transform: skewX(-10deg); background: var(--b300); padding: 7px 18px; font-family: var(--font-mono); font-size: 10px; font-weight: 600; color: var(--b500); letter-spacing: 0.07em; text-transform: uppercase;">
+              <span style="transform: skewX(10deg); display: inline-block;">Tab 2</span>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div style="font-family: var(--font-mono); font-size: 9px; color: var(--b400); margin-bottom: 8px; letter-spacing: 0.1em; text-transform: uppercase;">Diamond / Status</div>
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 14px; height: 14px; background: var(--g500); transform: rotate(45deg);"></div>
+            <div style="width: 14px; height: 14px; background: var(--b400); transform: rotate(45deg);"></div>
+            <div style="width: 14px; height: 14px; background: #C44040; transform: rotate(45deg);"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel example -->
+      <div style="max-width: 440px;">
+        <div class="panel">
+          <div class="panel-hd panel-hd-green">
+            <div class="diamond"></div>
+            Session Details
+          </div>
+          <div class="panel-bd">
+            <div class="info-row">
+              <span class="info-key">Session ID</span>
+              <span class="info-val">fa_8a3f2c91d4b7</span>
+            </div>
+            <div class="info-row">
+              <span class="info-key">Status</span>
+              <span class="info-val" style="display: flex; align-items: center; gap: 8px;">
+                <span class="status-dot"></span> Active
+              </span>
+            </div>
+            <div class="info-row">
+              <span class="info-key">IP Restriction</span>
+              <span class="info-val">93.184.216.34</span>
+            </div>
+            <div class="info-row">
+              <span class="info-key">Expires</span>
+              <span class="info-val">2h 19m</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BUTTONS -->
+    <div style="margin-bottom: 32px; padding-bottom: 32px; border-bottom: 1px solid var(--b200);">
+      <div class="ds-title">Buttons <span>HOVER OUTLINE ANIMATION</span></div>
+      <p style="font-size: 12px; color: var(--b500); margin-bottom: 20px; font-family: var(--font-mono);">// Hover each button to see outline ring animation — no pop or shake</p>
+      <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 16px;">
+        <button class="btn btn-primary">Start Session</button>
+        <button class="btn btn-primary btn-lg">Launch Root Access</button>
+        <button class="btn btn-primary btn-sm">Connect</button>
+      </div>
+      <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 16px;">
+        <button class="btn btn-outline">View Docs</button>
+        <button class="btn btn-ghost">Cancel</button>
+        <button class="btn btn-secondary">Copy Key</button>
+        <button class="btn btn-danger">Terminate Session</button>
+      </div>
+    </div>
+
+    <!-- BADGES + FORM ELEMENTS -->
+    <div class="grid-2" style="gap: 32px; margin-bottom: 32px; padding-bottom: 32px; border-bottom: 1px solid var(--b200);">
+      <div>
+        <div class="ds-title">Badges &amp; Status</div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px;">
+          <span class="badge badge-green"><span class="status-dot"></span>Active</span>
+          <span class="badge badge-beige">Default</span>
+          <span class="badge badge-amber"><span class="status-dot" style="background: var(--warn-accent);"></span>Expiring</span>
+          <span class="badge badge-red"><span class="status-dot error"></span>Terminated</span>
+        </div>
+        <div class="terminal" style="font-size: 11px;">
+          <div><span class="term-prompt">$ </span><span class="term-cmd">flashaccess session start</span></div>
+          <div><span class="term-output">✓ Session fa_8a3f2c91 initiated</span></div>
+          <div><span class="term-output">✓ IP 93.184.216.34 whitelisted</span></div>
+          <div><span class="term-output">✓ Duration: 4 hours</span></div>
+          <div class="term-comment"># Key: fa_key_d7e3c...</div>
+        </div>
+      </div>
+      <div>
+        <div class="ds-title">Form Elements</div>
+        <div class="field">
+          <label class="field-label">Allowed IP Address</label>
+          <input class="field-input" type="text" placeholder="93.184.216.34" value="93.184.216.34">
+          <div class="field-hint">IPv4 or IPv6. Cloudflare proxy header used for resolution.</div>
+        </div>
+        <div class="field">
+          <label class="field-label">Session Duration</label>
+          <select class="field-select">
+            <option>1 hour</option>
+            <option selected>4 hours</option>
+            <option>8 hours</option>
+            <option>24 hours</option>
+          </select>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <div class="toggle-name">Require key on dashboard access</div>
+            <div class="toggle-desc">Prompt for session key before loading UI</div>
+          </div>
+          <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <div class="toggle-name">Auto-terminate on IP change</div>
+            <div class="toggle-desc">Kill session if access from different IP</div>
+          </div>
+          <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+        </div>
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <div class="toggle-name">Log all queries</div>
+            <div class="toggle-desc">Write query audit log to /var/log/flashaccess</div>
+          </div>
+          <div class="toggle" onclick="this.classList.toggle('on')"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- KEY DISPLAY -->
+    <div>
+      <div class="ds-title">Session Key Display</div>
+      <div style="max-width: 500px;">
+        <div class="key-block">
+          <span>fa_key_d7e3c8a1f924b056e3d9a72c</span>
+          <button onclick="this.textContent='Copied'" style="font-family: var(--font-mono); font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; background: var(--g700); color: var(--g100); border: none; padding: 4px 12px; cursor: pointer; transition: background 0.15s;">Copy</button>
+        </div>
+        <div style="font-family: var(--font-mono); font-size: 10px; color: var(--b500); margin-top: 8px; letter-spacing: 0.06em;">Valid for 4 hours · Single use per session · Do not share</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ============================================================
+     SCREEN 2: HOMEPAGE
+     ============================================================ -->
+<section id="screen-home" class="screen">
+
+  <!-- Site Navigation -->
+  <nav class="site-nav">
+    <div class="nav-logo">
+      <div class="logo-mark"><div style="width:11px;height:11px;background:var(--g400);"></div></div>
+      <span class="nav-wordmark">Flash<span>Access</span></span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="#" class="active">Home</a></li>
+      <li><a href="#">Docs</a></li>
+      <li><a href="#">GitHub</a></li>
+      <li><a href="#">Changelog</a></li>
+    </ul>
+    <div class="nav-actions">
+      <button class="btn btn-outline btn-sm">View on GitHub</button>
+      <button class="btn btn-primary btn-sm">Get Started</button>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-inner">
+      <div class="hero-eyebrow">Open Source · Self-Hosted · Ubuntu 24.04</div>
+      <h1>Temporary Root Access<em>for MySQL. Secured.</em></h1>
+      <p class="hero-desc">FlashAccess creates time-limited, IP-restricted sessions for root-level MySQL management — without permanently exposing your database. Runs behind Nginx + Cloudflare with full TLS.</p>
+      <div class="hero-actions">
+        <button class="btn btn-primary btn-lg">Read the Docs</button>
+        <button class="btn btn-ghost btn-lg" style="border-color: var(--b700); color: var(--b300);">View on GitHub →</button>
+      </div>
+      <div class="hero-install">
+        <div class="install-label">Install</div>
+        <div class="install-cmd">curl -fsSL https://flashaccess.dev/install.sh | bash</div>
+        <button class="install-copy">Copy</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Features -->
+  <div class="features-strip">
+    <div class="section-label">What FlashAccess does</div>
+    <div class="grid-3">
+      <div class="feature-card">
+        <div class="feature-num">01</div>
+        <div class="feature-title">Session-Keyed Access</div>
+        <div class="feature-desc">Every access window is tied to a unique cryptographic key. No key, no entry — for the web UI and SSH tunnel alike.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-num">02</div>
+        <div class="feature-title">IP Restriction</div>
+        <div class="feature-desc">Lock sessions to a specific IP address. Cloudflare-aware: reads CF-Connecting-IP headers to enforce the real client IP behind the proxy.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-num">03</div>
+        <div class="feature-title">Time-Limited Durations</div>
+        <div class="feature-desc">Set sessions from 1 to 24 hours. Auto-terminates on expiry — or immediately via the dashboard or CLI.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-num">04</div>
+        <div class="feature-title">Web Dashboard</div>
+        <div class="feature-desc">A full PHPMyAdmin-style management interface served only during an active session. Disappears when the session ends.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-num">05</div>
+        <div class="feature-title">SSH Dev Commands</div>
+        <div class="feature-desc">Developers with server access can use CLI commands within the same session to open root access for tools like Navicat.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-num">06</div>
+        <div class="feature-title">Nginx + Cloudflare Ready</div>
+        <div class="feature-desc">Works out of the box with Cloudflare Full (strict) TLS mode and Nginx reverse proxy. No special firewall rules needed.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- How it works -->
+  <div class="how-section">
+    <div style="max-width: 680px; margin: 0 auto;">
+      <div class="section-label">How it works</div>
+      <div class="how-step">
+        <div class="how-num"><span>1</span></div>
+        <div>
+          <div class="how-title">Install on your Ubuntu server</div>
+          <div class="how-desc">Run the install script. FlashAccess installs as a systemd service, configures Nginx, and initialises its local SQLite state store. No cloud dependencies.</div>
+        </div>
+      </div>
+      <div class="how-step">
+        <div class="how-num"><span>2</span></div>
+        <div>
+          <div class="how-title">Connect your MySQL database</div>
+          <div class="how-desc">Point FlashAccess at your MySQL instance with a one-time <code style="font-family: var(--font-mono); color: var(--g600);">flashaccess connect</code> command. Credentials are stored encrypted on-disk.</div>
+        </div>
+      </div>
+      <div class="how-step">
+        <div class="how-num"><span>3</span></div>
+        <div>
+          <div class="how-title">Start a session</div>
+          <div class="how-desc">Run <code style="font-family: var(--font-mono); color: var(--g600);">flashaccess session start</code>. Choose your duration, allowed IP, and security options. A session key is generated.</div>
+        </div>
+      </div>
+      <div class="how-step">
+        <div class="how-num"><span>4</span></div>
+        <div>
+          <div class="how-title">Access the dashboard or open an SSH tunnel</div>
+          <div class="how-desc">Navigate to your domain — the management UI is live only during the session. Or use <code style="font-family: var(--font-mono); color: var(--g600);">flashaccess tunnel</code> for direct tool access (Navicat, TablePlus, etc.).</div>
+        </div>
+      </div>
+      <div class="how-step">
+        <div class="how-num"><span>5</span></div>
+        <div>
+          <div class="how-title">Session terminates automatically</div>
+          <div class="how-desc">Access closes on expiry, IP change, or manual kill. No residual open ports. Audit log written to disk.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="footer-top">
+      <div>
+        <div class="footer-brand">
+          FlashAccess
+          <small>Created by David Vos · MIT License</small>
+        </div>
+      </div>
+      <div class="footer-links">
+        <a href="#">Documentation</a>
+        <a href="#">GitHub</a>
+        <a href="#">Changelog</a>
+        <a href="#">License</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 David Vos. Free to use with attribution.</span>
+      <span style="font-family: var(--font-mono);">v1.0.0 · Ubuntu 24.04 · MySQL 8+</span>
+    </div>
+  </footer>
+
+</section>
+
+
+<!-- ============================================================
+     SCREEN 3: SESSION SETUP
+     ============================================================ -->
+<section id="screen-session" class="screen">
+  <div class="setup-layout">
+
+    <!-- Top bar -->
+    <div class="setup-topbar">
+      <div class="wordmark">
+        <div style="width:20px;height:20px;background:var(--g700);transform:rotate(45deg);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><div style="width:8px;height:8px;background:var(--g400);"></div></div>
+        Flash<span>Access</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <span class="badge badge-green"><span class="status-dot"></span>daemon active</span>
+        <span style="font-family: var(--font-mono); font-size: 11px; color: var(--b500);">mydb@localhost:3306</span>
+      </div>
+    </div>
+
+    <!-- Progress -->
+    <div class="setup-progress">
+      <div class="progress-step done">
+        <div class="step-dot"><div class="step-dot-inner">✓</div></div>
+        Connection
+      </div>
+      <div class="progress-step active">
+        <div class="step-dot"><div class="step-dot-inner">2</div></div>
+        Session Config
+      </div>
+      <div class="progress-step">
+        <div class="step-dot"><div class="step-dot-inner">3</div></div>
+        Security
+      </div>
+      <div class="progress-step">
+        <div class="step-dot"><div class="step-dot-inner">4</div></div>
+        Review &amp; Launch
+      </div>
+    </div>
+
+    <!-- Body -->
+    <div class="setup-body">
+
+      <div class="setup-h2">Session Configuration</div>
+      <div class="setup-sub">Define the duration and access parameters for this root session.</div>
+
+      <!-- Duration -->
+      <div class="panel">
+        <div class="panel-hd">
+          <div class="diamond"></div>
+          Session Duration
+        </div>
+        <div class="panel-bd">
+          <div class="field-label" style="margin-bottom: 12px;">How long should this session remain active?</div>
+          <div class="duration-grid">
+            <div class="dur-option" onclick="selectDur(this)">
+              <div class="dur-h">1<small style="font-size:12px">h</small></div>
+              <div class="dur-l">1 Hour</div>
+            </div>
+            <div class="dur-option selected" onclick="selectDur(this)">
+              <div class="dur-h">4<small style="font-size:12px">h</small></div>
+              <div class="dur-l">4 Hours</div>
+            </div>
+            <div class="dur-option" onclick="selectDur(this)">
+              <div class="dur-h">8<small style="font-size:12px">h</small></div>
+              <div class="dur-l">8 Hours</div>
+            </div>
+            <div class="dur-option" onclick="selectDur(this)">
+              <div class="dur-h">24<small style="font-size:12px">h</small></div>
+              <div class="dur-l">24 Hours</div>
+            </div>
+          </div>
+          <div class="field" style="margin-top: 14px; margin-bottom: 0;">
+            <label class="field-label">Custom Duration (minutes)</label>
+            <input class="field-input" type="text" placeholder="e.g. 90" style="max-width: 200px;">
+          </div>
+        </div>
+      </div>
+
+      <!-- IP Access -->
+      <div class="panel">
+        <div class="panel-hd">
+          <div class="diamond"></div>
+          IP Access Restriction
+        </div>
+        <div class="panel-bd">
+          <div class="field">
+            <label class="field-label">Add Allowed IP Address</label>
+            <div style="display: flex; gap: 8px;">
+              <input class="field-input" type="text" placeholder="93.184.216.34 or 2001:db8::1" style="flex: 1;">
+              <button class="btn btn-primary btn-sm" style="white-space: nowrap;">Add IP</button>
+            </div>
+            <div class="field-hint">Cloudflare CF-Connecting-IP header is used to resolve real client IPs behind the proxy.</div>
+          </div>
+          <div class="ip-chip-row">
+            <div class="ip-chip">93.184.216.34 <button class="ip-chip-remove">×</button></div>
+            <div class="ip-chip">192.168.1.0/24 <button class="ip-chip-remove">×</button></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Security options -->
+      <div class="panel">
+        <div class="panel-hd">
+          <div class="diamond"></div>
+          Security Options
+        </div>
+        <div class="panel-bd">
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <div class="toggle-name">Require key on every dashboard load</div>
+              <div class="toggle-desc">SESSION-KEY prompted each page visit, not just on session start</div>
+            </div>
+            <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <div class="toggle-name">Auto-terminate on IP mismatch</div>
+              <div class="toggle-desc">Immediately kill session if access attempt from non-whitelisted IP</div>
+            </div>
+            <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <div class="toggle-name">Disable dangerous queries</div>
+              <div class="toggle-desc">Block DROP DATABASE, TRUNCATE, and DELETE without WHERE clause</div>
+            </div>
+            <div class="toggle" onclick="this.classList.toggle('on')"></div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <div class="toggle-name">Write query audit log</div>
+              <div class="toggle-desc">Log all SQL queries to /var/log/flashaccess/audit.log</div>
+            </div>
+            <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <div class="toggle-name">Enable SSH tunnel commands</div>
+              <div class="toggle-desc">Allow <code style="font-family:var(--font-mono);font-size:10px;">flashaccess tunnel --key &lt;key&gt;</code> for tool access within session</div>
+            </div>
+            <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Footer actions -->
+    <div class="setup-footer">
+      <button class="btn btn-ghost">← Back</button>
+      <div style="display: flex; gap: 10px;">
+        <span style="font-family: var(--font-mono); font-size: 11px; color: var(--b500); display: flex; align-items: center;">Step 2 of 4</span>
+        <button class="btn btn-primary">Continue → Security</button>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ============================================================
+     SCREEN 4: DASHBOARD
+     ============================================================ -->
+<section id="screen-dashboard" class="screen">
+  <div class="dash-layout">
+
+    <!-- Top bar -->
+    <div class="dash-topbar">
+      <div class="wordmark">
+        <div style="width:20px;height:20px;background:var(--g700);transform:rotate(45deg);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><div style="width:8px;height:8px;background:var(--g400);"></div></div>
+        Flash<span>Access</span>
+      </div>
+      <div class="dash-session-info">
+        <div class="session-chip"><span class="status-dot"></span>Session Active</div>
+        <div class="session-chip">fa_8a3f2c91d4b7</div>
+        <div class="session-chip">93.184.216.34</div>
+        <div class="session-timer">02:41:09</div>
+      </div>
+      <div class="dash-topbar-right">
+        <button class="btn btn-sm btn-secondary">Copy Key</button>
+        <button class="btn btn-sm btn-danger">End Session</button>
+      </div>
+    </div>
+
+    <!-- Body -->
+    <div class="dash-body">
+
+      <!-- Sidebar -->
+      <div class="dash-sidebar">
+        <div class="sidebar-hd">
+          Databases
+          <button class="sidebar-hd-add">+</button>
+        </div>
+        <div class="db-tree">
+          <!-- DB 1 -->
+          <div class="db-group-label">Connected</div>
+          <div class="db-node db-node-db">
+            <div class="db-node-icon" style="background: var(--g600);"></div>
+            myapp_production
+          </div>
+          <div class="db-node active" style="padding-left: 32px;">
+            <div class="db-node-icon"></div>
+            users
+          </div>
+          <div class="db-node" style="padding-left: 32px;">
+            <div class="db-node-icon"></div>
+            orders
+          </div>
+          <div class="db-node" style="padding-left: 32px;">
+            <div class="db-node-icon"></div>
+            products
+          </div>
+          <div class="db-node" style="padding-left: 32px;">
+            <div class="db-node-icon"></div>
+            sessions
+          </div>
+          <div class="db-node" style="padding-left: 32px;">
+            <div class="db-node-icon"></div>
+            audit_logs
+          </div>
+
+          <div class="db-node db-node-db" style="margin-top: 4px;">
+            <div class="db-node-icon" style="background: var(--g600);"></div>
+            myapp_staging
+          </div>
+          <div class="db-node" style="padding-left: 32px;">
+            <div class="db-node-icon"></div>
+            users
+          </div>
+          <div class="db-node" style="padding-left: 32px;">
+            <div class="db-node-icon"></div>
+            orders
+          </div>
+
+          <div class="db-group-label" style="margin-top: 8px;">System</div>
+          <div class="db-node">
+            <div class="db-node-icon" style="background: var(--b400);"></div>
+            information_schema
+          </div>
+          <div class="db-node">
+            <div class="db-node-icon" style="background: var(--b400);"></div>
+            performance_schema
+          </div>
+          <div class="db-node">
+            <div class="db-node-icon" style="background: var(--b400);"></div>
+            mysql
+          </div>
+        </div>
+      </div>
+
+      <!-- Main -->
+      <div class="dash-main">
+
+        <!-- Toolbar -->
+        <div class="dash-toolbar">
+          <button class="btn btn-sm btn-primary">Run Query</button>
+          <button class="btn btn-sm btn-secondary">Export</button>
+          <button class="btn btn-sm btn-ghost">Import</button>
+          <div class="toolbar-sep"></div>
+          <button class="btn btn-sm btn-ghost">+ Insert Row</button>
+          <button class="btn btn-sm btn-ghost">Edit</button>
+          <button class="btn btn-sm btn-danger" style="font-size: 9px; padding: 5px 10px;">Delete</button>
+          <div class="toolbar-sep"></div>
+          <input style="font-family: var(--font-mono); font-size: 11px; padding: 4px 10px; border: 1px solid var(--b300); background: var(--b0); color: var(--b800); outline: none; width: 180px;" placeholder="Search table...">
+        </div>
+
+        <!-- Tabs -->
+        <div class="dash-tab-row">
+          <button class="tab-item active"><span>Browse</span></button>
+          <button class="tab-item"><span>Structure</span></button>
+          <button class="tab-item"><span>SQL Query</span></button>
+          <button class="tab-item"><span>Indexes</span></button>
+          <button class="tab-item"><span>Foreign Keys</span></button>
+          <button class="tab-item"><span>Operations</span></button>
+        </div>
+
+        <!-- Query editor (collapsed version in browse tab) -->
+        <div class="query-editor">
+          <div class="editor-hd">
+            <span>Quick Query — myapp_production.users</span>
+            <button class="btn btn-sm btn-primary" style="padding: 4px 12px;">▶ Run</button>
+          </div>
+          <div class="editor-body">
+            <span class="sql-kw">SELECT</span> <span class="sql-field">*</span> <span class="sql-kw">FROM</span> <span class="sql-field">users</span><br>
+            <span class="sql-kw">WHERE</span> <span class="sql-field">created_at</span> &gt; <span class="sql-str">'2026-01-01'</span><br>
+            <span class="sql-kw">ORDER BY</span> <span class="sql-field">created_at</span> <span class="sql-kw">DESC</span><br>
+            <span class="sql-kw">LIMIT</span> <span class="sql-num">100</span>; <span class="sql-com">-- 3,847 rows matched</span>
+          </div>
+        </div>
+
+        <!-- Stat bar -->
+        <div class="dash-stat-bar">
+          <div class="stat-cell"><strong>users</strong></div>
+          <div class="stat-cell"><strong>3,847</strong> rows returned</div>
+          <div class="stat-cell">of <strong>14,203</strong> total</div>
+          <div class="stat-cell">0.012s</div>
+          <div class="stat-cell stat-cell-right">Page <strong>1</strong> / 39 &nbsp;|&nbsp; 100 rows/page</div>
+        </div>
+
+        <!-- Data table -->
+        <div class="dash-content">
+          <div class="dash-pane">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th style="width: 30px;"><input type="checkbox"></th>
+                  <th>id</th>
+                  <th>email</th>
+                  <th>name</th>
+                  <th>role</th>
+                  <th>created_at</th>
+                  <th>last_login</th>
+                  <th style="width: 80px;">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="selected">
+                  <td><input type="checkbox" checked></td>
+                  <td><span style="color: var(--g600); font-weight:600;">1</span></td>
+                  <td>david@example.com</td>
+                  <td>David Vos</td>
+                  <td><span class="type-tag">admin</span></td>
+                  <td>2025-03-12 09:14:02</td>
+                  <td>2026-06-21 11:32:48</td>
+                  <td style="display: flex; gap: 4px; padding: 4px 14px;">
+                    <button class="btn btn-sm btn-ghost" style="padding:3px 8px;">Edit</button>
+                    <button class="btn btn-sm btn-danger" style="padding:3px 6px; font-size:9px;">Del</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td><input type="checkbox"></td>
+                  <td>2</td>
+                  <td>jane.smith@acme.com</td>
+                  <td>Jane Smith</td>
+                  <td><span class="type-tag">user</span></td>
+                  <td>2025-04-08 14:22:31</td>
+                  <td>2026-06-20 16:05:11</td>
+                  <td style="display: flex; gap: 4px; padding: 4px 14px;">
+                    <button class="btn btn-sm btn-ghost" style="padding:3px 8px;">Edit</button>
+                    <button class="btn btn-sm btn-danger" style="padding:3px 6px; font-size:9px;">Del</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td><input type="checkbox"></td>
+                  <td>3</td>
+                  <td>bob.chen@corp.io</td>
+                  <td>Bob Chen</td>
+                  <td><span class="type-tag">user</span></td>
+                  <td>2025-05-17 08:55:14</td>
+                  <td>2026-06-19 09:44:22</td>
+                  <td style="display: flex; gap: 4px; padding: 4px 14px;">
+                    <button class="btn btn-sm btn-ghost" style="padding:3px 8px;">Edit</button>
+                    <button class="btn btn-sm btn-danger" style="padding:3px 6px; font-size:9px;">Del</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td><input type="checkbox"></td>
+                  <td>4</td>
+                  <td>alice@devteam.net</td>
+                  <td>Alice Novak</td>
+                  <td><span class="type-tag">moderator</span></td>
+                  <td>2025-06-02 11:00:00</td>
+                  <td>2026-06-21 08:12:05</td>
+                  <td style="display: flex; gap: 4px; padding: 4px 14px;">
+                    <button class="btn btn-sm btn-ghost" style="padding:3px 8px;">Edit</button>
+                    <button class="btn btn-sm btn-danger" style="padding:3px 6px; font-size:9px;">Del</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td><input type="checkbox"></td>
+                  <td>5</td>
+                  <td>sys@flashaccess.internal</td>
+                  <td>System</td>
+                  <td><span class="type-tag" style="background: var(--b900); color: var(--b300);">system</span></td>
+                  <td>2024-12-01 00:00:00</td>
+                  <td>2026-06-21 11:41:00</td>
+                  <td style="display: flex; gap: 4px; padding: 4px 14px;">
+                    <button class="btn btn-sm btn-ghost" style="padding:3px 8px;">Edit</button>
+                    <button class="btn btn-sm btn-danger" style="padding:3px 6px; font-size:9px;">Del</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<script>
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.meta-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+  const tabs = document.querySelectorAll('.meta-tab');
+  const order = ['design', 'home', 'session', 'dashboard'];
+  tabs[order.indexOf(id)].classList.add('active');
+}
+
+function selectDur(el) {
+  document.querySelectorAll('.dur-option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+// Install copy button
+document.querySelector('.install-copy')?.addEventListener('click', function() {
+  const orig = this.textContent;
+  this.textContent = 'Copied!';
+  setTimeout(() => this.textContent = orig, 1500);
+});
+</script>
+
+</body>
+</html>

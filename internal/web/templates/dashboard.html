@@ -1,0 +1,19 @@
+{{define "dash_title"}}Dashboard{{end}}
+{{define "dash_body"}}
+<div class="dash-content-header">
+  <div class="content-header-title">Select a Database</div>
+</div>
+<div class="dash-welcome">
+  <div class="welcome-grid">
+    {{range .Databases}}
+    <a href="/dashboard/{{.}}" class="db-card">
+      <div class="db-card-icon" aria-hidden="true"></div>
+      <div class="db-card-name">{{.}}</div>
+      <div class="db-card-arrow">→</div>
+    </a>
+    {{else}}
+    <p class="empty-state">No databases found.</p>
+    {{end}}
+  </div>
+</div>
+{{end}}

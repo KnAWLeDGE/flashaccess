@@ -1,0 +1,79 @@
+{{define "dash_title"}}{{.CurrentDB}}.{{.Table}}{{end}}
+{{define "dash_body"}}
+<div class="dash-content-header">
+  <div class="content-breadcrumb">
+    <a href="/dashboard">Databases</a>
+    <span class="breadcrumb-sep">/</span>
+    <a href="/dashboard/{{.CurrentDB}}">{{.CurrentDB}}</a>
+    <span class="breadcrumb-sep">/</span>
+    <span>{{.Table}}</span>
+  </div>
+  <div class="content-header-title">{{.Table}}</div>
+</div>
+
+<div class="tab-strip">
+  <a href="/dashboard/{{.CurrentDB}}/{{.Table}}" class="tab-item active"><span>Browse</span></a>
+  <a href="/dashboard/{{.CurrentDB}}/{{.Table}}/structure" class="tab-item"><span>Structure</span></a>
+  <a href="/dashboard/{{.CurrentDB}}/query?sql=SELECT+*+FROM+%60{{.Table}}%60+LIMIT+50" class="tab-item"><span>Query</span></a>
+</div>
+
+<div class="table-toolbar">
+  <span class="table-count">
+    Rows {{.Offset}}–{{add .Offset (len .Result.Rows)}} of {{.Total}}
+  </span>
+  <div class="toolbar-right">
+    <form method="GET" action="/dashboard/{{.CurrentDB}}/{{.Table}}" class="toolbar-form">
+      <label class="field-label inline" for="limit">Rows</label>
+      <select name="limit" id="limit" class="field-select inline" onchange="this.form.submit()">
+        <option value="25"  {{if eq .Limit 25 }}selected{{end}}>25</option>
+        <option value="50"  {{if eq .Limit 50 }}selected{{end}}>50</option>
+        <option value="100" {{if eq .Limit 100}}selected{{end}}>100</option>
+      </select>
+    </form>
+    <a href="/dashboard/{{.CurrentDB}}/query" class="btn btn-outline btn-sm">SQL Editor</a>
+  </div>
+</div>
+
+{{if .Result.Err}}
+<div class="alert alert-error">{{.Result.Err}}</div>
+{{else if .Result.Rows}}
+<div class="table-scroll">
+<table class="data-table">
+  <thead>
+    <tr>
+      {{range .Result.Columns}}
+      <th>
+        <a href="?order={{.}}&dir={{if eq $.OrderBy .}}{{if eq $.OrderDir "asc"}}desc{{else}}asc{{end}}{{else}}asc{{end}}&limit={{$.Limit}}&offset={{$.Offset}}" class="sort-link">
+          {{.}}
+          {{if eq $.OrderBy .}}
+            {{if eq $.OrderDir "desc"}}↓{{else}}↑{{end}}
+          {{end}}
+        </a>
+      </th>
+      {{end}}
+    </tr>
+  </thead>
+  <tbody>
+    {{range .Result.Rows}}
+    <tr>
+      {{range .}}<td class="mono">{{if eq . "NULL"}}<span class="null-val">NULL</span>{{else}}{{.}}{{end}}</td>{{end}}
+    </tr>
+    {{end}}
+  </tbody>
+</table>
+</div>
+
+<div class="pagination">
+  {{range .Pages}}
+  <a href="?offset={{.Offset}}&limit={{$.Limit}}{{if $.OrderBy}}&order={{$.OrderBy}}&dir={{$.OrderDir}}{{end}}"
+     class="page-btn {{if .Active}}active{{end}}">{{.Label}}</a>
+  {{end}}
+</div>
+{{else}}
+<p class="empty-state">No rows returned.</p>
+{{end}}
+
+<div class="result-meta">
+  Query completed in {{fmtElapsed .Result.Elapsed}}
+</div>
+{{end}}

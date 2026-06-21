@@ -1,0 +1,77 @@
+{{define "dash_title"}}Structure — {{.CurrentDB}}.{{.Table}}{{end}}
+{{define "dash_body"}}
+<div class="dash-content-header">
+  <div class="content-breadcrumb">
+    <a href="/dashboard">Databases</a>
+    <span class="breadcrumb-sep">/</span>
+    <a href="/dashboard/{{.CurrentDB}}">{{.CurrentDB}}</a>
+    <span class="breadcrumb-sep">/</span>
+    <a href="/dashboard/{{.CurrentDB}}/{{.Table}}">{{.Table}}</a>
+    <span class="breadcrumb-sep">/</span>
+    <span>Structure</span>
+  </div>
+  <div class="content-header-title">{{.Table}} — Structure</div>
+</div>
+
+<div class="tab-strip">
+  <a href="/dashboard/{{.CurrentDB}}/{{.Table}}" class="tab-item"><span>Browse</span></a>
+  <a href="/dashboard/{{.CurrentDB}}/{{.Table}}/structure" class="tab-item active"><span>Structure</span></a>
+  <a href="/dashboard/{{.CurrentDB}}/query" class="tab-item"><span>Query</span></a>
+</div>
+
+<div class="panel">
+  <div class="panel-hd">Columns</div>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Field</th>
+        <th>Type</th>
+        <th>Null</th>
+        <th>Key</th>
+        <th>Default</th>
+        <th>Extra</th>
+        <th>Comment</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{range .Columns}}
+      <tr>
+        <td class="mono fw-500">{{.Field}}</td>
+        <td class="mono text-muted">{{.Type}}</td>
+        <td class="mono">{{.Null}}</td>
+        <td>{{if .Key}}<span class="key-badge key-{{lower .Key}}">{{.Key}}</span>{{end}}</td>
+        <td class="mono text-muted">{{if .Default.Valid}}{{.Default.String}}{{else}}<span class="null-val">NULL</span>{{end}}</td>
+        <td class="mono text-muted">{{.Extra}}</td>
+        <td class="text-muted">{{.Comment}}</td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+</div>
+
+{{if .Indexes}}
+<div class="panel" style="margin-top:16px">
+  <div class="panel-hd">Indexes</div>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Type</th>
+        <th>Unique</th>
+        <th>Columns</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{range .Indexes}}
+      <tr>
+        <td class="mono fw-500">{{.Name}}</td>
+        <td class="mono text-muted">{{.Type}}</td>
+        <td>{{if .Unique}}<span class="badge badge-green">YES</span>{{else}}<span class="badge badge-beige">NO</span>{{end}}</td>
+        <td class="mono">{{join .Columns ", "}}</td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+</div>
+{{end}}
+{{end}}

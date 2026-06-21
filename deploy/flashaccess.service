@@ -1,0 +1,30 @@
+[Unit]
+Description=FlashAccess — temporary IP-locked MySQL dashboard
+Documentation=https://github.com/davidvos/flashaccess
+After=network.target mysql.service
+Wants=mysql.service
+
+[Service]
+Type=simple
+User=flashaccess
+Group=flashaccess
+ExecStart=/usr/local/bin/flashaccess serve
+Restart=on-failure
+RestartSec=5s
+
+# Listen only on localhost; nginx reverse-proxies to this
+Environment=FLASHACCESS_ADDR=127.0.0.1:7432
+
+# Data directory with the encrypted config and master key
+StateDirectory=flashaccess
+ReadWritePaths=/var/lib/flashaccess
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+CapabilityBoundingSet=
+
+[Install]
+WantedBy=multi-user.target

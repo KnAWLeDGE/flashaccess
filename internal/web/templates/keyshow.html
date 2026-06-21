@@ -1,0 +1,61 @@
+{{define "title"}}Session Key{{end}}
+{{define "body"}}
+<div class="auth-card wide">
+  <div class="auth-card-hd green">
+    <span class="status-diamond active sm"></span>
+    Session Started — Save Your Key
+  </div>
+  <div class="auth-card-bd">
+    <div class="alert alert-warn">
+      <strong>This key is shown exactly once.</strong> Copy it now — it cannot be retrieved again.
+    </div>
+
+    <div class="key-display">
+      <span id="js-key" class="key-value">{{.Key}}</span>
+      <button class="btn btn-secondary btn-sm" onclick="copyKey()" id="js-copy-btn">Copy</button>
+    </div>
+
+    <div class="key-meta">
+      <div class="key-meta-row">
+        <span class="key-meta-label">Session ID</span>
+        <span class="key-meta-value mono">{{.SessionID}}</span>
+      </div>
+      <div class="key-meta-row">
+        <span class="key-meta-label">Allowed IP</span>
+        <span class="key-meta-value mono">{{.IP}}</span>
+      </div>
+      <div class="key-meta-row">
+        <span class="key-meta-label">Duration</span>
+        <span class="key-meta-value">{{.Duration}}</span>
+      </div>
+      <div class="key-meta-row">
+        <span class="key-meta-label">Expires</span>
+        <span class="key-meta-value mono">{{.ExpiresAt}}</span>
+      </div>
+    </div>
+
+    <div class="ssh-block">
+      <div class="ssh-block-label">SSH / CLI access (for developers with server SSH)</div>
+      <div class="terminal">
+        <span class="term-comment"># Within an active session, open root access for tools like Navicat:</span><br>
+        <span class="term-prompt">$ </span><span class="term-cmd">flashaccess session activate {{.SessionID}} &lt;key&gt; &lt;your-ip&gt;</span>
+      </div>
+    </div>
+
+    <div class="form-actions" style="margin-top:24px">
+      <a href="/gate" class="btn btn-primary">Go to Dashboard →</a>
+    </div>
+  </div>
+</div>
+
+<script>
+function copyKey() {
+  const key = document.getElementById('js-key').textContent;
+  navigator.clipboard.writeText(key).then(() => {
+    const btn = document.getElementById('js-copy-btn');
+    btn.textContent = 'Copied';
+    setTimeout(() => btn.textContent = 'Copy', 2000);
+  });
+}
+</script>
+{{end}}

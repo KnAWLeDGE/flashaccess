@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlashAccess — Temporary IP-Locked MySQL Access</title>
+  <meta name="description" content="Self-hosted tool for granting temporary, IP-restricted root access to your MySQL database via session-based cryptographic keys.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/site.css">
+</head>
+<body>
+
+<!-- ── Nav ──────────────────────────────────────────────────── -->
+<nav class="site-nav">
+  <div class="nav-brand">
+    <div class="logo-mark"></div>
+    <span class="wordmark">Flash<em>Access</em></span>
+  </div>
+  <div class="nav-links">
+    <a href="docs/" class="nav-link">Docs</a>
+    <a href="https://github.com/davidvos/flashaccess" class="nav-link" target="_blank" rel="noopener">GitHub</a>
+    <a href="https://github.com/davidvos/flashaccess/releases" class="nav-cta" target="_blank" rel="noopener">Download</a>
+  </div>
+</nav>
+
+<!-- ── Hero ─────────────────────────────────────────────────── -->
+<section class="hero">
+  <div class="hero-eyebrow">Open Source · Self-Hosted · MIT License</div>
+  <h1>Temporary <em>root access</em> to your MySQL database.</h1>
+  <p class="hero-sub">
+    Generate a time-limited session key. Bind it to a single IP or CIDR range.
+    Access expires automatically. No shared passwords. No lingering users.
+  </p>
+  <div class="hero-actions">
+    <a href="docs/" class="btn btn-primary">Read the docs →</a>
+    <a href="https://github.com/davidvos/flashaccess" class="btn-ghost-light btn" target="_blank" rel="noopener">View on GitHub</a>
+  </div>
+  <div class="install-wrap" style="margin-top:36px;">
+    <div class="install-cmd">
+      <span class="install-prompt">$</span>
+      <span class="install-text" id="install-text">curl -fsSL https://raw.githubusercontent.com/davidvos/flashaccess/main/install.sh | bash</span>
+      <button class="install-copy" onclick="copyInstall(this)" aria-label="Copy install command">Copy</button>
+    </div>
+  </div>
+  <p class="hero-note">Ubuntu 24.04 · Go 1.23 · Runs behind Nginx + Cloudflare · <a href="docs/#requirements">Requirements</a></p>
+</section>
+
+<!-- ── Features ─────────────────────────────────────────────── -->
+<div class="section-divider"></div>
+<section class="section">
+  <p class="section-label">What it does</p>
+  <h2 class="section-title">Database access that cleans up after itself.</h2>
+  <p class="section-sub">Designed for developers who need temporary root access — for a migration, a debug session, or an emergency fix — without leaving permanent credentials behind.</p>
+
+  <div class="feature-grid">
+    <div class="feature-card">
+      <div class="feature-icon"></div>
+      <div class="feature-title">Session-scoped keys</div>
+      <div class="feature-desc">Each session generates a one-time 256-bit key (Argon2id hashed at rest). Shown once. Expires with the session.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon"></div>
+      <div class="feature-title">IP / CIDR locking</div>
+      <div class="feature-desc">Access is restricted to a specific IP or CIDR block at the application layer. Works transparently behind Cloudflare.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon"></div>
+      <div class="feature-title">Auto-expiry</div>
+      <div class="feature-desc">Sessions expire automatically. The temporary database user is dropped and the firewall rule is closed the moment a session ends.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon"></div>
+      <div class="feature-title">Web dashboard</div>
+      <div class="feature-desc">Browse tables, inspect structure, and run queries — a self-contained MySQL management UI that lives inside the session.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon"></div>
+      <div class="feature-title">CLI + Navicat support</div>
+      <div class="feature-desc"><code>flashaccess session activate</code> outputs credentials for use with any MySQL client — Navicat, TablePlus, mysql CLI.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon"></div>
+      <div class="feature-title">Single binary</div>
+      <div class="feature-desc">One statically compiled Go binary. No runtime dependencies. The dashboard, CLI, and web server are all inside it.</div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ── How it works ─────────────────────────────────────────── -->
+<section class="section">
+  <p class="section-label">How it works</p>
+  <h2 class="section-title">Three commands, then you're in.</h2>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">01</div>
+      <div class="step-body">
+        <div class="step-title">Install and configure</div>
+        <div class="step-desc">Run the one-liner installer, then configure your MySQL connection and set an admin password with the interactive wizard.</div>
+        <div class="step-cmd">flashaccess connect</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">02</div>
+      <div class="step-body">
+        <div class="step-title">Start the dashboard</div>
+        <div class="step-desc">Enable and start the systemd service. FlashAccess listens on <code>127.0.0.1:7432</code> and is reverse-proxied through nginx.</div>
+        <div class="step-cmd">systemctl enable --now flashaccess</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">03</div>
+      <div class="step-body">
+        <div class="step-title">Create a session</div>
+        <div class="step-desc">Visit your domain. Enter your admin password and the allowed IP. You'll receive a session key — valid for up to 24 hours, scoped to that IP only.</div>
+        <div class="step-cmd">https://db.yourdomain.com → Session Setup</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">04</div>
+      <div class="step-body">
+        <div class="step-title">Access expires automatically</div>
+        <div class="step-desc">When time runs out (or you click End Session), the temp MySQL user is dropped and the UFW rule is removed. Nothing lingers.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- ── Security ─────────────────────────────────────────────── -->
+<section class="section">
+  <p class="section-label">Security model</p>
+  <h2 class="section-title">Designed to be auditable.</h2>
+  <p class="section-sub">FlashAccess does not add complexity to your database — it adds structure to temporary access.</p>
+
+  <div class="security-grid">
+    <div class="security-item">
+      <div class="sec-diamond"></div>
+      <div class="sec-text"><strong>AES-256-GCM config</strong>Credentials stored encrypted with a per-machine master key.</div>
+    </div>
+    <div class="security-item">
+      <div class="sec-diamond"></div>
+      <div class="sec-text"><strong>Argon2id key hashing</strong>Session keys are never stored in plaintext — only the Argon2id hash.</div>
+    </div>
+    <div class="security-item">
+      <div class="sec-diamond"></div>
+      <div class="sec-text"><strong>bcrypt admin password</strong>The setup UI is gated by a bcrypt-hashed password with artificial delay on failure.</div>
+    </div>
+    <div class="security-item">
+      <div class="sec-diamond"></div>
+      <div class="sec-text"><strong>IP enforcement at app layer</strong>Works correctly behind Cloudflare — reads <code>CF-Connecting-IP</code>, not <code>RemoteAddr</code>.</div>
+    </div>
+    <div class="security-item">
+      <div class="sec-diamond"></div>
+      <div class="sec-text"><strong>Temporary MySQL users</strong>Each session creates a scoped user that is dropped on expiry — no permanent credentials.</div>
+    </div>
+    <div class="security-item">
+      <div class="sec-diamond"></div>
+      <div class="sec-text"><strong>UFW firewall rules</strong>Port-level rules are opened and closed automatically via UFW for each session.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA ───────────────────────────────────────────────────── -->
+<div class="cta-banner">
+  <h2>Self-hosted. Open source. MIT licensed.</h2>
+  <p>No telemetry. No cloud dependency. Runs on your server.</p>
+  <div style="display:flex;gap:14px;flex-wrap:wrap;justify-content:center;">
+    <a href="docs/" class="btn btn-primary">Installation guide →</a>
+    <a href="https://github.com/davidvos/flashaccess" class="btn-ghost-light btn" target="_blank" rel="noopener">GitHub</a>
+  </div>
+</div>
+
+<!-- ── Footer ────────────────────────────────────────────────── -->
+<footer class="site-footer">
+  <div class="footer-copy">
+    © 2026 <a href="https://github.com/davidvos" target="_blank" rel="noopener">David Vos</a> — MIT License
+  </div>
+  <div class="footer-links">
+    <a href="docs/" class="footer-link">Docs</a>
+    <a href="https://github.com/davidvos/flashaccess" class="footer-link" target="_blank" rel="noopener">GitHub</a>
+    <a href="https://github.com/davidvos/flashaccess/releases" class="footer-link" target="_blank" rel="noopener">Releases</a>
+    <a href="https://github.com/davidvos/flashaccess/issues" class="footer-link" target="_blank" rel="noopener">Issues</a>
+  </div>
+</footer>
+
+<script>
+function copyInstall(btn) {
+  var text = document.getElementById('install-text').textContent.trim();
+  navigator.clipboard.writeText(text).then(function() {
+    var orig = btn.textContent;
+    btn.textContent = 'Copied';
+    setTimeout(function() { btn.textContent = orig; }, 1500);
+  });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,34 @@
+{{define "title"}}Key Verification{{end}}
+{{define "body"}}
+<div class="auth-card">
+  <div class="auth-card-hd">
+    <span class="status-diamond active sm"></span>
+    Session Active — Key Required
+  </div>
+  <div class="auth-card-bd">
+    <p class="auth-desc">A session is active. Enter the session key to access the management dashboard.</p>
+    {{if .Error}}
+    <div class="alert alert-error">{{.Error}}</div>
+    {{end}}
+    <form method="POST" action="/gate" class="auth-form" autocomplete="off">
+      <div class="field">
+        <label class="field-label" for="key">Session Key</label>
+        <input
+          id="key"
+          name="key"
+          type="password"
+          class="field-input mono"
+          placeholder="fa_..."
+          autocomplete="off"
+          autofocus
+          required
+        >
+        <div class="field-hint">The key was shown once when the session was created.</div>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Verify Key →</button>
+      </div>
+    </form>
+  </div>
+</div>
+{{end}}

@@ -1,0 +1,79 @@
+{{define "dash_title"}}SQL Query — {{.CurrentDB}}{{end}}
+{{define "dash_body"}}
+<div class="dash-content-header">
+  <div class="content-breadcrumb">
+    <a href="/dashboard">Databases</a>
+    <span class="breadcrumb-sep">/</span>
+    <a href="/dashboard/{{.CurrentDB}}">{{.CurrentDB}}</a>
+    <span class="breadcrumb-sep">/</span>
+    <span>SQL Query</span>
+  </div>
+  <div class="content-header-title">SQL Editor</div>
+</div>
+
+<div class="query-editor-wrap">
+  <form method="POST" action="/dashboard/{{.CurrentDB}}/query" id="js-query-form">
+    <div class="editor-header">
+      <span class="editor-db-label">{{.CurrentDB}}</span>
+      <div class="editor-actions">
+        <button type="button" class="btn btn-ghost btn-sm" onclick="clearEditor()">Clear</button>
+        <button type="submit" class="btn btn-primary btn-sm">Run Query →</button>
+      </div>
+    </div>
+    <textarea
+      id="js-sql"
+      name="sql"
+      class="sql-editor"
+      rows="8"
+      placeholder="SELECT * FROM users LIMIT 100;"
+      spellcheck="false"
+    >{{.SQL}}</textarea>
+  </form>
+</div>
+
+{{if .Result}}
+  {{if .Result.Err}}
+  <div class="alert alert-error query-result-error">
+    <strong>Query Error</strong><br>{{.Result.Err}}
+  </div>
+  {{else if .Result.IsSelect}}
+  <div class="result-meta">
+    {{len .Result.Rows}} rows · {{fmtElapsed .Result.Elapsed}}
+  </div>
+  {{if .Result.Rows}}
+  <div class="table-scroll">
+  <table class="data-table">
+    <thead>
+      <tr>{{range .Result.Columns}}<th>{{.}}</th>{{end}}</tr>
+    </thead>
+    <tbody>
+      {{range .Result.Rows}}
+      <tr>
+        {{range .}}<td class="mono">{{if eq . "NULL"}}<span class="null-val">NULL</span>{{else}}{{.}}{{end}}</td>{{end}}
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+  </div>
+  {{else}}
+  <p class="empty-state">Query returned no rows.</p>
+  {{end}}
+  {{else}}
+  <div class="result-meta success">
+    {{.Result.Affected}} rows affected · {{fmtElapsed .Result.Elapsed}}
+  </div>
+  {{end}}
+{{end}}
+
+<script>
+function clearEditor() {
+  document.getElementById('js-sql').value = '';
+  document.getElementById('js-sql').focus();
+}
+document.addEventListener('keydown', function(e) {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    document.getElementById('js-query-form').submit();
+  }
+});
+</script>
+{{end}}

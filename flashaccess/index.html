@@ -1,0 +1,443 @@
+import React, { useState, useEffect } from 'react';
+import { Shield, Clock, Database, Copy, Check, ChevronRight, Lock, Globe, Key, Power, Table2, Code2, Search, FileDown, Plus, Pencil, Trash2, ChevronDown, KeyRound, RefreshCw, Play, FileText, Server, CheckCircle2, Terminal } from 'lucide-react';
+
+export default function Concept() {
+  const [view, setView] = useState('home');
+  const [copied, setCopied] = useState('');
+  const copy = (t, id) => { navigator.clipboard?.writeText(t); setCopied(id); setTimeout(()=>setCopied(''),1500); };
+
+  const css = `
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box;}
+  .tr{
+    --ink:#2a2620;--ink2:#665e50;--ink3:#9a9180;
+    --line:#cfc4ad;--line2:#e3dac4;--bg:#ece5d4;--card:#faf6ec;--chrome:#f2ecdc;
+    --grn:#2c5530;--grn-h:#214024;--grn-soft:#e0ebdd;--grn-line:#a9c4a4;
+    --tan:#8a6a28;--tan-soft:#f1e6c9;--tan-line:#d6c089;--tan-bright:#b08a35;
+    --dgr:#9e3b2a;--dgr-soft:#f3ddd6;--dgr-line:#d9a99c;
+    --term:#262019;
+    font-family:'Inter',system-ui,sans-serif;color:var(--ink);background:var(--bg);
+    min-height:100vh;-webkit-font-smoothing:antialiased;font-size:14px;
+  }
+  .tr .mono{font-family:'JetBrains Mono',monospace;}
+  .notch{clip-path:polygon(9px 0,100% 0,100% calc(100% - 9px),calc(100% - 9px) 100%,0 100%,0 9px);}
+  .notch-s{clip-path:polygon(7px 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%,0 7px);}
+  .diag{background-image:repeating-linear-gradient(45deg,var(--grn) 0 3px,transparent 3px 7px);}
+  .diag-t{background-image:repeating-linear-gradient(45deg,var(--tan-bright) 0 3px,transparent 3px 7px);}
+
+  .tr-nav{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:5px;
+    padding:0 18px;height:52px;background:var(--card);border-bottom:2px solid var(--ink);flex-wrap:wrap;}
+  .tr-brand{display:flex;align-items:center;gap:9px;font-weight:800;font-size:15px;margin-right:auto;letter-spacing:-.3px;text-transform:lowercase;}
+  .tr-brand .mk{width:24px;height:24px;background:var(--grn);display:grid;place-items:center;color:#fff;
+    clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px);}
+  .tr-brand small{font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--ink3);font-size:10px;border-left:2px solid var(--line);padding-left:9px;margin-left:3px;text-transform:uppercase;letter-spacing:.05em;}
+  .tr-tab{font:inherit;font-size:12.5px;font-weight:600;color:var(--ink2);background:none;border:none;cursor:pointer;
+    padding:7px 14px;transform:skewX(-11deg);transition:.12s;}
+  .tr-tab span{display:block;transform:skewX(11deg);}
+  .tr-tab:hover{background:var(--chrome);color:var(--ink);}
+  .tr-tab.on{background:var(--grn);color:#fff;}
+  .wrap{max-width:780px;margin:0 auto;padding:50px 22px 90px;}
+
+  .btn{font:inherit;font-weight:700;font-size:12.5px;cursor:pointer;padding:10px 18px;letter-spacing:.01em;
+    display:inline-flex;align-items:center;gap:7px;transition:.12s;border:2px solid transparent;
+    clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);}
+  .btn.solid{background:var(--grn);color:#fff;}
+  .btn.solid:hover{background:var(--grn-h);}
+  .btn.ghost{background:var(--card);border-color:var(--ink);color:var(--ink);}
+  .btn.ghost:hover{background:var(--chrome);}
+  .btn.sm{padding:7px 12px;font-size:11.5px;}
+  .btn.danger{background:var(--dgr-soft);color:var(--dgr);border-color:var(--dgr);}
+  .btn.danger:hover{background:#eecabf;}
+
+  /* HOME */
+  .badge{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;font-weight:700;color:var(--grn);
+    background:var(--grn-soft);border:2px solid var(--grn-line);padding:5px 11px;margin-bottom:24px;text-transform:uppercase;letter-spacing:.05em;
+    clip-path:polygon(7px 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%,0 7px);}
+  .h1{font-size:42px;line-height:1.05;letter-spacing:-1.6px;font-weight:800;margin-bottom:16px;}
+  .h1 em{font-style:normal;color:var(--grn);}
+  .h1 .tt{color:var(--tan);}
+  .lead{font-size:16.5px;line-height:1.55;color:var(--ink2);max-width:580px;margin-bottom:30px;}
+  .cmd{display:flex;align-items:center;gap:11px;background:var(--term);color:#e6e1d4;padding:14px 15px;font-size:13px;margin-bottom:12px;
+    clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px);}
+  .cmd .pr{color:#7fb98a;user-select:none;font-weight:700;}
+  .cmd .tx{flex:1;overflow-x:auto;white-space:nowrap;}
+  .cmd button{background:#3a342a;color:#cfc8b8;border:none;cursor:pointer;width:30px;height:30px;display:grid;place-items:center;flex-shrink:0;
+    clip-path:polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px);}
+  .cmd button:hover{background:#4a4336;color:#fff;}
+  .row{display:flex;gap:10px;margin-top:22px;flex-wrap:wrap;}
+  .feats{display:grid;grid-template-columns:repeat(3,1fr);gap:13px;margin-top:58px;}
+  .feat{background:var(--card);border:2px solid var(--ink);padding:0 18px 18px;position:relative;
+    clip-path:polygon(11px 0,100% 0,100% calc(100% - 11px),calc(100% - 11px) 100%,0 100%,0 11px);}
+  .feat .fhead{display:flex;align-items:center;justify-content:space-between;margin:0 -18px 14px;padding:0 18px;height:30px;border-bottom:2px solid var(--ink);}
+  .feat .fhead .ic{color:var(--grn);}
+  .feat .fhead .dz{width:38px;height:14px;}
+  .feat h3{font-size:13.5px;margin-bottom:5px;margin-top:4px;}
+  .feat p{font-size:12.5px;line-height:1.5;color:var(--ink2);}
+  .trust{margin-top:52px;border:2px solid var(--ink);background:var(--card);padding:16px 20px;display:flex;gap:24px;flex-wrap:wrap;
+    clip-path:polygon(11px 0,100% 0,100% calc(100% - 11px),calc(100% - 11px) 100%,0 100%,0 11px);}
+  .trust .ti{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--ink2);font-weight:600;}
+  .trust .ti svg{color:var(--grn);}
+
+  .eyebrow{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--grn);margin-bottom:10px;
+    display:inline-flex;align-items:center;gap:8px;}
+  .eyebrow::before{content:'';width:22px;height:10px;}
+  .h2{font-size:28px;letter-spacing:-.6px;margin-bottom:8px;font-weight:800;}
+  .sub{color:var(--ink2);font-size:14px;line-height:1.55;margin-bottom:30px;}
+
+  /* DOCS */
+  .doc{display:grid;grid-template-columns:178px 1fr;gap:32px;}
+  .toc{position:sticky;top:70px;align-self:start;display:flex;flex-direction:column;gap:2px;border-left:2px solid var(--line);}
+  .toc a{font-size:12.5px;color:var(--ink2);text-decoration:none;padding:7px 12px;margin-left:-2px;border-left:2px solid transparent;cursor:pointer;font-weight:500;}
+  .toc a.on{color:var(--grn);font-weight:700;border-left-color:var(--grn);background:var(--grn-soft);}
+  .doc h3{font-size:15px;margin:26px 0 9px;font-weight:700;}.doc h3:first-child{margin-top:0;}
+  .doc p{font-size:13.5px;line-height:1.65;color:var(--ink2);margin-bottom:11px;}
+  .inl{font-family:'JetBrains Mono',monospace;font-size:12px;background:var(--tan-soft);border:1px solid var(--tan-line);padding:1px 6px;color:var(--ink);}
+  .block{background:var(--term);color:#e6e1d4;padding:14px 15px;font-size:12.5px;line-height:1.7;margin:12px 0;overflow-x:auto;font-family:'JetBrains Mono',monospace;
+    clip-path:polygon(9px 0,100% 0,100% calc(100% - 9px),calc(100% - 9px) 100%,0 100%,0 9px);}
+  .block .pr{color:#7fb98a;font-weight:700;}.block .cm{color:#7a7160;}
+  .note{display:flex;gap:11px;background:var(--tan-soft);border:2px solid var(--tan-line);padding:13px 15px;font-size:12.5px;line-height:1.55;color:#6a5320;margin:14px 0;
+    clip-path:polygon(9px 0,100% 0,100% calc(100% - 9px),calc(100% - 9px) 100%,0 100%,0 9px);}
+  .note svg{flex-shrink:0;color:var(--tan);margin-top:1px;}
+
+  /* PANEL (shared) */
+  .panel{background:var(--card);border:2px solid var(--ink);
+    clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);}
+  .phead{display:flex;align-items:center;gap:9px;height:40px;padding:0 18px;background:var(--grn);color:#fff;
+    font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;position:relative;overflow:hidden;
+    clip-path:polygon(0 0,100% 0,calc(100% - 14px) 100%,0 100%);}
+  .phead.tan{background:var(--tan);}
+  .phead .stripes{position:absolute;right:18px;top:0;bottom:0;width:46px;opacity:.4;
+    background-image:repeating-linear-gradient(45deg,#fff 0 3px,transparent 3px 7px);}
+  .pbody{padding:20px 18px;}
+
+  .field{margin-bottom:20px;}.field:last-child{margin-bottom:0;}
+  .label{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;margin-bottom:5px;}
+  .hint{font-size:11.5px;color:var(--ink3);margin-bottom:9px;line-height:1.5;}
+  .input{width:100%;font:inherit;font-size:13px;padding:9px 11px;border:2px solid var(--line);background:var(--bg);color:var(--ink);
+    clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px);}
+  .input.mono{font-family:'JetBrains Mono',monospace;font-size:12.5px;}
+  .input:focus{outline:none;border-color:var(--grn);}
+  .chips{display:flex;gap:7px;flex-wrap:wrap;}
+  .chip{font:inherit;font-size:12px;font-weight:600;padding:8px 14px;border:2px solid var(--line);background:var(--bg);cursor:pointer;color:var(--ink2);transition:.12s;transform:skewX(-9deg);}
+  .chip span{display:block;transform:skewX(9deg);}
+  .chip.on{border-color:var(--grn);background:var(--grn);color:#fff;}
+  .tgl{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-top:1px solid var(--line2);}
+  .tgl:first-of-type{border-top:none;}
+  .tgl .tl{font-size:12.5px;font-weight:700;}.tgl .td{font-size:11px;color:var(--ink3);margin-top:2px;}
+  .sw{width:42px;height:22px;background:#c9bda3;position:relative;cursor:pointer;transition:.18s;border:none;flex-shrink:0;
+    clip-path:polygon(4px 0,100% 0,100% calc(100% - 4px),calc(100% - 4px) 100%,0 100%,0 4px);}
+  .sw.on{background:var(--grn);}
+  .sw span{position:absolute;top:2px;left:2px;width:18px;height:18px;background:#fff;transition:.18s;}
+  .sw.on span{left:22px;}
+  .hr{height:2px;background:var(--line2);margin:20px 0;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start;}
+  .sumrow{display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--line2);font-size:12.5px;}
+  .sumrow:first-child{border-top:none;}
+  .sumrow .sl{color:var(--ink2);}.sumrow .sr{font-family:'JetBrains Mono',monospace;font-weight:600;}
+  .keybox{background:var(--term);padding:14px;margin-top:16px;border-left:4px solid var(--tan-bright);
+    clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);}
+  .keybox .kh{color:var(--tan-line);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+  .keybox .kv{display:flex;align-items:center;gap:9px;}
+  .keybox .kv .k{flex:1;color:#fff;font-family:'JetBrains Mono',monospace;font-size:12.5px;overflow-x:auto;white-space:nowrap;font-weight:600;}
+  .keybox .kv button{background:#3a342a;color:#cfc8b8;border:none;width:28px;height:28px;cursor:pointer;display:grid;place-items:center;flex-shrink:0;
+    clip-path:polygon(4px 0,100% 0,100% calc(100% - 4px),calc(100% - 4px) 100%,0 100%,0 4px);}
+  .keybox .kn{color:#c4934a;font-size:11px;margin-top:9px;}
+
+  /* DASHBOARD session bar */
+  .sess{display:flex;align-items:center;gap:0;background:var(--tan-soft);border:2px solid var(--tan);margin-bottom:14px;overflow:hidden;
+    clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);}
+  .sess .lead-strip{width:34px;align-self:stretch;background-image:repeating-linear-gradient(45deg,var(--tan-bright) 0 4px,transparent 4px 9px);border-right:2px solid var(--tan);flex-shrink:0;}
+  .sess .inner{display:flex;align-items:center;gap:16px;padding:11px 16px;flex-wrap:wrap;flex:1;}
+  .pulse{width:9px;height:9px;background:var(--tan-bright);position:relative;flex-shrink:0;}
+  .pulse::after{content:'';position:absolute;inset:-4px;border:2px solid var(--tan-bright);animation:pl 1.7s infinite;}
+  @keyframes pl{0%{transform:scale(.6);opacity:1;}100%{transform:scale(1.8);opacity:0;}}
+  .sess .si{display:flex;flex-direction:column;gap:1px;}
+  .sess .sk{font-size:9.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink3);font-weight:700;}
+  .sess .sv{font-family:'JetBrains Mono',monospace;font-size:12.5px;font-weight:600;}
+  .sess .sv.temp{color:var(--tan);}
+  .sess .timer{font-family:'JetBrains Mono',monospace;font-size:19px;font-weight:700;color:var(--tan);letter-spacing:-.5px;}
+  .vsep{width:2px;height:28px;background:var(--tan-line);}
+
+  .pma{display:grid;grid-template-columns:208px 1fr;border:2px solid var(--ink);overflow:hidden;background:var(--card);min-height:470px;
+    clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);}
+  .side{background:var(--chrome);border-right:2px solid var(--ink);overflow-y:auto;}
+  .side-h{height:34px;padding:0 13px;display:flex;align-items:center;gap:7px;background:var(--grn);color:#fff;
+    font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
+    clip-path:polygon(0 0,100% 0,calc(100% - 11px) 100%,0 100%);}
+  .tree{padding:6px 0;}
+  .db-h{display:flex;align-items:center;gap:6px;padding:6px 12px;cursor:pointer;font-weight:700;color:var(--ink);font-size:12.5px;}
+  .db-h:hover{background:var(--line2);}
+  .db-h svg.cv{transition:.15s;color:var(--ink3);}
+  .tb{display:flex;align-items:center;gap:7px;padding:5px 12px 5px 28px;cursor:pointer;color:var(--ink2);font-family:'JetBrains Mono',monospace;font-size:11.5px;}
+  .tb:hover{background:var(--line2);}
+  .tb.on{background:var(--grn-soft);color:var(--grn);font-weight:700;border-right:3px solid var(--grn);}
+  .tb svg{color:var(--ink3);flex-shrink:0;}.tb.on svg{color:var(--grn);}
+
+  .main{display:flex;flex-direction:column;min-width:0;}
+  .crumb{height:34px;padding:0 16px;display:flex;align-items:center;gap:7px;border-bottom:2px solid var(--line);background:var(--card);
+    font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--ink2);}
+  .crumb b{color:var(--grn);}
+  .tabs{display:flex;gap:5px;padding:7px 10px 0;background:var(--chrome);border-bottom:2px solid var(--ink);overflow-x:auto;}
+  .ptab{font:inherit;font-size:11.5px;font-weight:600;color:var(--ink2);background:var(--bg);border:2px solid var(--line);border-bottom:none;cursor:pointer;
+    padding:7px 13px;transform:skewX(-12deg);white-space:nowrap;position:relative;top:2px;}
+  .ptab .pin{display:flex;align-items:center;gap:6px;transform:skewX(12deg);}
+  .ptab:hover{color:var(--ink);}
+  .ptab.on{background:var(--grn);color:#fff;border-color:var(--grn);top:2px;}
+  .pane{overflow:auto;flex:1;}
+  .toolbar{display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid var(--line2);flex-wrap:wrap;background:var(--card);}
+  .toolbar .qty{font-size:11.5px;color:var(--ink3);margin-right:auto;font-family:'JetBrains Mono',monospace;}
+
+  table.grid{width:100%;border-collapse:collapse;font-size:12px;}
+  table.grid th{background:var(--grn);color:#fff;text-align:left;padding:8px 11px;font-weight:700;border-right:1px solid rgba(255,255,255,.12);
+    white-space:nowrap;position:sticky;top:0;font-size:11px;text-transform:uppercase;letter-spacing:.03em;}
+  table.grid td{padding:7px 11px;border-bottom:1px solid var(--line2);font-family:'JetBrains Mono',monospace;color:var(--ink);white-space:nowrap;}
+  table.grid tr:hover td{background:var(--grn-soft);}
+  .actc{display:flex;gap:3px;}
+  .actc button{background:none;border:none;cursor:pointer;color:var(--ink3);width:24px;height:24px;display:grid;place-items:center;}
+  .actc button:hover{background:var(--grn-soft);color:var(--grn);}
+  .actc button.del:hover{background:var(--dgr-soft);color:var(--dgr);}
+  .pill{display:inline-block;font-family:'Inter';font-size:10px;font-weight:700;padding:2px 8px;text-transform:uppercase;letter-spacing:.04em;
+    clip-path:polygon(4px 0,100% 0,100% calc(100% - 4px),calc(100% - 4px) 100%,0 100%,0 4px);}
+  .pill.a{background:var(--grn-soft);color:var(--grn);border:1px solid var(--grn-line);}
+  .pill.i{background:var(--line2);color:var(--ink3);border:1px solid var(--line);}
+  .pill.r{background:var(--tan-soft);color:var(--tan);border:1px solid var(--tan-line);}
+
+  .sqlbox{padding:14px;}
+  .sqled{width:100%;font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1.6;border:2px solid var(--line);padding:13px;color:var(--ink);background:var(--bg);resize:vertical;min-height:120px;
+    clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);}
+  .sqled:focus{outline:none;border-color:var(--grn);}
+  .sqlbar{display:flex;align-items:center;gap:9px;margin-top:11px;}
+  .sqlbar .info{font-size:11.5px;color:var(--tan);margin-left:auto;font-family:'JetBrains Mono',monospace;font-weight:600;}
+
+  @media(max-width:720px){.h1{font-size:31px;}.feats{grid-template-columns:1fr;}.doc{grid-template-columns:1fr;}
+    .toc{position:static;flex-direction:row;flex-wrap:wrap;border-left:none;}.grid2{grid-template-columns:1fr;}
+    .pma{grid-template-columns:1fr;}.side{max-height:160px;}.wrap{padding:34px 16px 70px;}}
+  `;
+
+  return (
+    <div className="tr">
+      <style>{css}</style>
+      <nav className="tr-nav">
+        <div className="tr-brand"><span className="mk"><Database size={13}/></span>tmproot
+          <small>{view==='home'||view==='docs'?'tmproot.dev':'self-hosted'}</small></div>
+        {[['home','Home'],['docs','Docs'],['setup','New Session'],['dash','Dashboard']].map(([id,l])=>(
+          <button key={id} className={`tr-tab ${view===id?'on':''}`} onClick={()=>setView(id)}><span>{l}</span></button>
+        ))}
+      </nav>
+      {view==='home' && <Home setView={setView} copy={copy} copied={copied}/>}
+      {view==='docs' && <Docs/>}
+      {view==='setup' && <Setup copy={copy} copied={copied}/>}
+      {view==='dash' && <Dash copy={copy} copied={copied}/>}
+    </div>
+  );
+}
+
+function Home({setView,copy,copied}){
+  const feats=[[Clock,'Auto-expiring','Every grant carries a deadline. The temp user is dropped and the port closed automatically.'],
+    [Globe,'IP-locked','Bound to a single address — enforced at ufw, at nginx, and again at the app layer.'],
+    [Key,'Key-gated','Challenge-response verification. The raw key never crosses the wire. Zero phone-home.']];
+  return (
+    <div className="wrap">
+      <span className="badge"><Shield size={12}/> Time-boxed · IP-locked · key-gated</span>
+      <h1 className="h1">Grant <span className="tt">temporary</span> <em>root</em> to your MySQL — then forget about it.</h1>
+      <p className="lead">A self-hosted control plane for short-lived privileged access. Define a window, bind it to one IP, hand the key to your tools. At zero, the grant and the firewall rule are gone. No data ever leaves your server.</p>
+      <div className="cmd"><span className="pr mono">$</span><span className="tx mono">curl -fsSL https://tmproot.dev/install.sh | sudo bash</span>
+        <button onClick={()=>copy('curl -fsSL https://tmproot.dev/install.sh | sudo bash','i1')}>{copied==='i1'?<Check size={14}/>:<Copy size={14}/>}</button></div>
+      <div className="row">
+        <button className="btn solid" onClick={()=>setView('dash')}>View the dashboard <ChevronRight size={15}/></button>
+        <button className="btn ghost" onClick={()=>setView('docs')}>Read the docs</button>
+      </div>
+      <div className="feats">
+        {feats.map(([Ic,t,d])=>(
+          <div className="feat" key={t}>
+            <div className="fhead"><Ic size={17} className="ic"/><div className="dz diag"/></div>
+            <h3>{t}</h3><p>{d}</p>
+          </div>
+        ))}
+      </div>
+      <div className="trust">
+        {['Ubuntu 24.04','nginx + Cloudflare Full TLS','Single static binary','MIT licensed'].map(t=>(
+          <div className="ti" key={t}><CheckCircle2 size={14}/> {t}</div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Docs(){
+  const items=['Overview','Installation','Connect a database','Cloudflare (Full)','Start a session','SSH & Navicat'];
+  const [on,setOn]=useState('Installation');
+  return (
+    <div className="wrap">
+      <div className="eyebrow"><span className="diag" style={{width:22,height:10}}/> Documentation</div>
+      <h2 className="h2">Getting started</h2>
+      <p className="sub">From install to a verified live session in under two minutes. The same docs ship embedded in your installation.</p>
+      <div className="doc">
+        <nav className="toc">{items.map(i=>(<a key={i} className={on===i?'on':''} onClick={()=>setOn(i)}>{i}</a>))}</nav>
+        <div>
+          <h3>1. Install on Ubuntu 24.04</h3>
+          <p>A single command installs the binary and registers the <code className="inl">tmproot.service</code> systemd unit.</p>
+          <div className="block"><span className="pr">$</span> curl -fsSL https://tmproot.dev/install.sh | sudo bash</div>
+          <h3>2. Connect your database</h3>
+          <p>Point the daemon at your local MySQL. The <code className="inl">root@localhost</code> auth_socket login is used; credentials are stored encrypted at rest.</p>
+          <div className="block"><span className="cm"># local socket, nothing stored in plaintext</span><br/><span className="pr">$</span> sudo tmproot connect --socket /var/run/mysqld/mysqld.sock</div>
+          <div className="note"><Shield size={16}/><div>Run Cloudflare in <b>Full</b> mode and restrict your origin to Cloudflare IP ranges. The IP gate is only meaningful if the origin cannot be reached directly.</div></div>
+          <h3>3. Start a session</h3>
+          <p>Use saved defaults, or open the setup screen to tune duration, bound IP and privilege scope.</p>
+          <div className="block"><span className="pr">$</span> sudo tmproot session new <span className="cm"># interactive</span><br/><span className="pr">$</span> sudo tmproot session new --default <span className="cm"># reuse last config</span></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Setup({copy,copied}){
+  const [dur,setDur]=useState('1h');
+  const [tog,setTog]=useState({audit:true,rate:true,grant:true,autoexp:true});
+  const t=(k)=>setTog(p=>({...p,[k]:!p[k]}));
+  return (
+    <div className="wrap">
+      <div className="eyebrow"><span className="diag" style={{width:22,height:10}}/> New Session</div>
+      <h2 className="h2">Configure access</h2>
+      <p className="sub">These parameters define the blast radius of the session. Tighter is safer.</p>
+      <div className="grid2">
+        <div className="panel">
+          <div className="phead"><Server size={13}/> Parameters<div className="stripes"/></div>
+          <div className="pbody">
+            <div className="field">
+              <div className="label"><Clock size={14}/> Session duration</div>
+              <div className="hint">After this window, the temporary user is dropped and the firewall rule removed.</div>
+              <div className="chips">{['15m','1h','4h','8h','Custom'].map(d=>(<button key={d} className={`chip ${dur===d?'on':''}`} onClick={()=>setDur(d)}><span>{d}</span></button>))}</div>
+            </div>
+            <div className="field">
+              <div className="label"><Globe size={14}/> Allowed IP / CIDR</div>
+              <div className="hint">Only this address may reach the management UI and MySQL port.</div>
+              <input className="input mono" defaultValue="203.0.113.42"/>
+            </div>
+            <div className="field">
+              <div className="label"><FileText size={14}/> Session label</div>
+              <input className="input" defaultValue="Hotfix — orders migration"/>
+            </div>
+          </div>
+        </div>
+        <div className="panel">
+          <div className="phead tan"><Lock size={13}/> Security options<div className="stripes"/></div>
+          <div className="pbody">
+            <div className="tgl"><div><div className="tl">Auto-expire & revoke</div><div className="td">Drop temp user and close port at deadline</div></div><button className={`sw ${tog.autoexp?'on':''}`} onClick={()=>t('autoexp')}><span/></button></div>
+            <div className="tgl"><div><div className="tl">Audit logging</div><div className="td">Record every grant, revoke & key attempt</div></div><button className={`sw ${tog.audit?'on':''}`} onClick={()=>t('audit')}><span/></button></div>
+            <div className="tgl"><div><div className="tl">Brute-force rate limiting</div><div className="td">Throttle failed key verifications</div></div><button className={`sw ${tog.rate?'on':''}`} onClick={()=>t('rate')}><span/></button></div>
+            <div className="tgl"><div><div className="tl">Full privileges (GRANT ALL)</div><div className="td">Off = read-only scoped temp user</div></div><button className={`sw ${tog.grant?'on':''}`} onClick={()=>t('grant')}><span/></button></div>
+            <div className="hr"/>
+            <div className="sumrow"><span className="sl">Duration</span><span className="sr">{dur}</span></div>
+            <div className="sumrow"><span className="sl">Privilege</span><span className="sr">{tog.grant?'ALL PRIVILEGES':'READ ONLY'}</span></div>
+            <button className="btn solid" style={{width:'100%',justifyContent:'center',marginTop:16}}><Power size={15}/> Launch session</button>
+            <div className="keybox">
+              <div className="kh"><KeyRound size={12}/> Session key — shown once</div>
+              <div className="kv"><span className="k">trk_9f3a8c12e7b4d05f6a1c</span>
+                <button onClick={()=>copy('trk_9f3a8c12e7b4d05f6a1c','k1')}>{copied==='k1'?<Check size={14}/>:<Copy size={14}/>}</button></div>
+              <div className="kn">Store it now — only its hash is kept on the server.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Dash({copy,copied}){
+  const [secs,setSecs]=useState(3475);
+  const [tbl,setTbl]=useState('users');
+  const [tab,setTab]=useState('browse');
+  const [open,setOpen]=useState({app_production:true,analytics:false});
+  useEffect(()=>{const i=setInterval(()=>setSecs(s=>s>0?s-1:0),1000);return()=>clearInterval(i);},[]);
+  const fmt=(s)=>`${String(Math.floor(s/3600)).padStart(2,'0')}:${String(Math.floor(s%3600/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+  const dbs={app_production:['users','orders','products','sessions','migrations'],analytics:['events','pageviews']};
+  const rows=[['1001','alex.morgan@corp.io','Alex Morgan','admin','a','2024-11-02'],['1002','j.tran@corp.io','Jamie Tran','editor','a','2024-11-08'],
+    ['1003','s.ode@corp.io','Sam Ode','viewer','i','2024-12-01'],['1004','rina.k@corp.io','Rina Kapoor','editor','a','2025-01-14'],
+    ['1005','devops@corp.io','Service Acct','admin','r','2025-02-03'],['1006','m.fischer@corp.io','Max Fischer','viewer','a','2025-03-19']];
+  const cols=[['id','int(11)','NO','PRI','—','auto_increment'],['email','varchar(190)','NO','UNI','NULL',''],['full_name','varchar(120)','YES','','NULL',''],['role',"enum(...)",'NO','MUL',"'viewer'",''],['status','char(1)','NO','','a',''],['created_at','date','NO','','NULL','']];
+  const tabs=[['browse','Browse',Table2],['structure','Structure',Server],['sql','SQL',Code2],['search','Search',Search],['insert','Insert',Plus],['export','Export',FileDown]];
+  return (
+    <div className="wrap" style={{maxWidth:980}}>
+      <div className="sess">
+        <div className="lead-strip"/>
+        <div className="inner">
+          <span className="pulse"/>
+          <div className="si"><span className="sk">Status</span><span className="sv temp">SESSION LIVE</span></div>
+          <div className="vsep"/>
+          <div className="si"><span className="sk">Bound IP</span><span className="sv">203.0.113.42</span></div>
+          <div className="vsep"/>
+          <div className="si"><span className="sk">Target</span><span className="sv">localhost:3306</span></div>
+          <div className="vsep"/>
+          <div className="si"><span className="sk">Expires in</span><span className="timer">{fmt(secs)}</span></div>
+          <div style={{marginLeft:'auto',display:'flex',gap:8}}>
+            <button className="btn ghost sm"><RefreshCw size={12}/> Extend</button>
+            <button className="btn danger sm"><Power size={12}/> End now</button>
+          </div>
+        </div>
+      </div>
+
+      <div className="pma">
+        <aside className="side">
+          <div className="side-h"><Database size={12}/> Databases</div>
+          <div className="tree">
+            {Object.keys(dbs).map(db=>(
+              <div key={db}>
+                <div className="db-h" onClick={()=>setOpen(o=>({...o,[db]:!o[db]}))}>
+                  <ChevronDown size={13} className="cv" style={{transform:open[db]?'none':'rotate(-90deg)'}}/>{db}
+                </div>
+                {open[db] && dbs[db].map(tn=>(
+                  <div key={tn} className={`tb ${tbl===tn?'on':''}`} onClick={()=>{setTbl(tn);setTab('browse');}}><Table2 size={11}/> {tn}</div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </aside>
+        <div className="main">
+          <div className="crumb"><Database size={11}/> app_production <ChevronRight size={10}/> <b>{tbl}</b></div>
+          <div className="tabs">
+            {tabs.map(([id,l,Ic])=>(
+              <button key={id} className={`ptab ${tab===id?'on':''}`} onClick={()=>setTab(id)}><span className="pin"><Ic size={12}/> {l}</span></button>
+            ))}
+          </div>
+          <div className="pane">
+            {tab==='browse' && (<>
+              <div className="toolbar">
+                <span className="qty">rows 0–{rows.length-1} · {rows.length} total · 0.0008s</span>
+                <button className="btn ghost sm"><Plus size={11}/> Insert</button>
+                <button className="btn ghost sm"><FileDown size={11}/> Export</button>
+              </div>
+              <table className="grid">
+                <thead><tr><th>id</th><th>email</th><th>full_name</th><th>role</th><th>status</th><th>created_at</th><th></th></tr></thead>
+                <tbody>{rows.map(r=>(
+                  <tr key={r[0]}><td>{r[0]}</td><td>{r[1]}</td><td>{r[2]}</td><td>{r[3]}</td>
+                    <td><span className={`pill ${r[4]==='a'?'a':r[4]==='r'?'r':'i'}`}>{r[4]==='a'?'active':r[4]==='r'?'restricted':'inactive'}</span></td>
+                    <td>{r[5]}</td>
+                    <td><div className="actc"><button><Pencil size={12}/></button><button><Copy size={12}/></button><button className="del"><Trash2 size={12}/></button></div></td></tr>
+                ))}</tbody>
+              </table>
+            </>)}
+            {tab==='structure' && (
+              <table className="grid">
+                <thead><tr><th>Column</th><th>Type</th><th>Null</th><th>Key</th><th>Default</th><th>Extra</th></tr></thead>
+                <tbody>{cols.map(c=>(<tr key={c[0]}><td style={{fontWeight:700}}>{c[0]}</td><td>{c[1]}</td><td>{c[2]}</td><td>{c[3]||'—'}</td><td>{c[4]}</td><td style={{color:'var(--ink3)'}}>{c[5]||'—'}</td></tr>))}</tbody>
+              </table>
+            )}
+            {tab==='sql' && (
+              <div className="sqlbox">
+                <textarea className="sqled" defaultValue={`SELECT id, email, role\nFROM users\nWHERE status = 'a'\nORDER BY created_at DESC\nLIMIT 50;`}/>
+                <div className="sqlbar"><button className="btn solid sm"><Play size={12}/> Run query</button><button className="btn ghost sm">Format</button>
+                  <span className="info">root grant active · writes enabled</span></div>
+              </div>
+            )}
+            {(tab==='search'||tab==='insert'||tab==='export') && (
+              <div style={{padding:28,color:'var(--ink3)',fontSize:12.5,display:'flex',alignItems:'center',gap:8,fontFamily:'JetBrains Mono'}}>
+                <Terminal size={15}/> {tab.toUpperCase()} panel — same engine, scoped to the live session.
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

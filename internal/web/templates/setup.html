@@ -1,0 +1,53 @@
+{{define "title"}}New Session{{end}}
+{{define "body"}}
+<div class="auth-card wide">
+  <div class="auth-card-hd">
+    <span class="status-diamond inactive sm"></span>
+    No Active Session — Setup
+  </div>
+  <div class="auth-card-bd">
+    <p class="auth-desc">Configure a new root-access session. An admin password is required to start one.</p>
+    {{if .Error}}
+    <div class="alert alert-error">{{.Error}}</div>
+    {{end}}
+    <form method="POST" action="/setup" class="auth-form" autocomplete="off">
+
+      <div class="form-section-label">Authentication</div>
+      <div class="field">
+        <label class="field-label" for="admin_password">Admin Password</label>
+        <input id="admin_password" name="admin_password" type="password" class="field-input" autocomplete="off" required autofocus>
+        <div class="field-hint">Set during <code class="inline-code">flashaccess connect</code>.</div>
+      </div>
+
+      <div class="form-divider"></div>
+      <div class="form-section-label">Session Parameters</div>
+
+      <div class="field-row">
+        <div class="field">
+          <label class="field-label" for="allowed_ip">Allowed IP / CIDR</label>
+          <input id="allowed_ip" name="allowed_ip" type="text" class="field-input mono"
+            placeholder="203.0.113.42 or 203.0.113.0/24"
+            value="{{.Defaults.CIDR}}" required>
+          <div class="field-hint">Only this address can reach the dashboard. Cloudflare <code class="inline-code">CF-Connecting-IP</code> is used.</div>
+        </div>
+        <div class="field">
+          <label class="field-label" for="duration">Duration</label>
+          <select id="duration" name="duration" class="field-select">
+            <option value="1h">1 hour</option>
+            <option value="2h">2 hours</option>
+            <option value="4h" selected>4 hours</option>
+            <option value="8h">8 hours</option>
+            <option value="24h">24 hours</option>
+          </select>
+          <div class="field-hint">Session auto-terminates on expiry or IP mismatch.</div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Start Session →</button>
+        <span class="form-note">A key will be generated and shown once.</span>
+      </div>
+    </form>
+  </div>
+</div>
+{{end}}

@@ -1,0 +1,33 @@
+version: 2
+project_name: flashaccess
+
+builds:
+  - id: flashaccess
+    main: ./cmd/flashaccess
+    binary: flashaccess
+    env: [CGO_ENABLED=0]
+    flags: [-trimpath]
+    ldflags:
+      - -s -w -X main.version={{.Version}}
+    goos: [linux]
+    goarch: [amd64, arm64]
+
+archives:
+  - formats: [tar.gz]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+nfpms:                      # produce .deb for Ubuntu
+  - maintainer: David Vos
+    description: Temporary, IP-locked root access for MySQL.
+    license: MIT
+    formats: [deb]
+    bindir: /usr/local/bin
+    contents:
+      - src: deploy/flashaccess.service
+        dst: /lib/systemd/system/flashaccess.service
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  use: github

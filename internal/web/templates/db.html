@@ -1,0 +1,46 @@
+{{define "dash_title"}}{{.CurrentDB}}{{end}}
+{{define "dash_body"}}
+<div class="dash-content-header">
+  <div class="content-breadcrumb">
+    <a href="/dashboard">Databases</a>
+    <span class="breadcrumb-sep">/</span>
+    <span>{{.CurrentDB}}</span>
+  </div>
+  <div class="content-header-title">{{.CurrentDB}}</div>
+</div>
+
+<div class="table-toolbar">
+  <span class="table-count">{{len .Tables}} tables</span>
+  <a href="/dashboard/{{.CurrentDB}}/query" class="btn btn-outline btn-sm">SQL Query</a>
+</div>
+
+{{if .Tables}}
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>Table</th>
+      <th>Engine</th>
+      <th>Rows (est.)</th>
+      <th>Size</th>
+      <th style="width:160px"></th>
+    </tr>
+  </thead>
+  <tbody>
+    {{range .Tables}}
+    <tr>
+      <td class="mono fw-500">{{.Name}}</td>
+      <td class="mono text-muted">{{.Engine}}</td>
+      <td class="mono">{{.Rows}}</td>
+      <td class="mono text-muted">{{.Size}}</td>
+      <td class="row-actions">
+        <a href="/dashboard/{{$.CurrentDB}}/{{.Name}}" class="btn btn-ghost btn-xs">Browse</a>
+        <a href="/dashboard/{{$.CurrentDB}}/{{.Name}}/structure" class="btn btn-ghost btn-xs">Structure</a>
+      </td>
+    </tr>
+    {{end}}
+  </tbody>
+</table>
+{{else}}
+<p class="empty-state">No tables in this database.</p>
+{{end}}
+{{end}}

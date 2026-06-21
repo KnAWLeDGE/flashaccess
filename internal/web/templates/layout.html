@@ -1,0 +1,26 @@
+{{define "layout"}}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{template "title" .}} — FlashAccess</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body class="auth-body">
+<header class="auth-header">
+  <div class="logo-mark" aria-hidden="true"></div>
+  <span class="wordmark">Flash<em>Access</em></span>
+</header>
+<main class="auth-main">
+  {{template "body" .}}
+</main>
+<footer class="auth-footer">
+  <span>FlashAccess</span>
+  <span>·</span>
+  <a href="https://flashaccess.dev/docs" target="_blank" rel="noopener">Docs</a>
+</footer>
+</body>
+</html>{{end}}

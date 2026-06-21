@@ -1,0 +1,54 @@
+{{define "dash_layout"}}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{template "dash_title" .}} — FlashAccess</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body class="dash-body">
+
+<div class="dash-topbar">
+  <div class="dash-topbar-left">
+    <div class="logo-mark sm" aria-hidden="true"></div>
+    <span class="wordmark sm">Flash<em>Access</em></span>
+    <span class="topbar-sep" aria-hidden="true"></span>
+    <span class="session-chip">
+      <span class="status-diamond active" aria-label="Active"></span>
+      {{.Session.ID}}
+    </span>
+    <span class="session-chip">{{.Session.AllowedCIDR}}</span>
+  </div>
+  <div class="dash-topbar-right">
+    <span class="session-timer" id="js-timer" data-expires="{{.Session.ExpiresAt.Unix}}">{{.Remaining}}</span>
+    <form method="POST" action="/api/session/end" style="display:inline">
+      <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('End this session? Root access and firewall rules will be revoked immediately.')">End Session</button>
+    </form>
+  </div>
+</div>
+
+<div class="dash-layout">
+
+  <nav class="dash-sidebar">
+    <div class="sidebar-section-label">Databases</div>
+    {{range .Databases}}
+    <div class="db-group">
+      <a href="/dashboard/{{.}}" class="db-name-link {{if eq . $.CurrentDB}}active{{end}}">
+        <span class="db-icon" aria-hidden="true"></span>{{.}}
+      </a>
+    </div>
+    {{end}}
+  </nav>
+
+  <main class="dash-main">
+    {{template "dash_body" .}}
+  </main>
+
+</div>
+
+<script src="/static/js/app.js"></script>
+</body>
+</html>{{end}}

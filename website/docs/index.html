@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlashAccess — Installation &amp; Docs</title>
+  <meta name="description" content="Full installation guide and documentation for FlashAccess.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/site.css">
+</head>
+<body class="docs-body">
+
+<!-- ── Nav ──────────────────────────────────────────────────── -->
+<nav class="site-nav">
+  <div class="nav-brand">
+    <div class="logo-mark"></div>
+    <span class="wordmark"><a href="../" style="color:inherit">Flash<em>Access</em></a></span>
+  </div>
+  <div class="nav-links">
+    <a href="./" class="nav-link active">Docs</a>
+    <a href="https://github.com/davidvos/flashaccess" class="nav-link" target="_blank" rel="noopener">GitHub</a>
+    <a href="https://github.com/davidvos/flashaccess/releases" class="nav-cta" target="_blank" rel="noopener">Download</a>
+  </div>
+</nav>
+
+<!-- ── Sidebar ───────────────────────────────────────────────── -->
+<aside class="docs-sidebar">
+  <div class="docs-sidebar-section">
+    <div class="docs-sidebar-label">Getting started</div>
+    <a href="#requirements"  class="docs-sidebar-link">Requirements</a>
+    <a href="#install"       class="docs-sidebar-link">Installation</a>
+    <a href="#connect"       class="docs-sidebar-link">flashaccess connect</a>
+    <a href="#serve"         class="docs-sidebar-link">Starting the server</a>
+  </div>
+  <div class="docs-sidebar-section">
+    <div class="docs-sidebar-label">Usage</div>
+    <a href="#sessions"      class="docs-sidebar-link">Sessions</a>
+    <a href="#dashboard"     class="docs-sidebar-link">Web dashboard</a>
+    <a href="#cli-activate"  class="docs-sidebar-link">CLI activate (Navicat)</a>
+  </div>
+  <div class="docs-sidebar-section">
+    <div class="docs-sidebar-label">Deployment</div>
+    <a href="#systemd"       class="docs-sidebar-link">systemd service</a>
+    <a href="#nginx"         class="docs-sidebar-link">nginx + Cloudflare</a>
+    <a href="#firewall"      class="docs-sidebar-link">UFW / firewall</a>
+  </div>
+  <div class="docs-sidebar-section">
+    <div class="docs-sidebar-label">Reference</div>
+    <a href="#security"      class="docs-sidebar-link">Security model</a>
+    <a href="#env"           class="docs-sidebar-link">Environment vars</a>
+    <a href="#build"         class="docs-sidebar-link">Building from source</a>
+    <a href="#release"       class="docs-sidebar-link">Releasing</a>
+  </div>
+</aside>
+
+<!-- ── Main ─────────────────────────────────────────────────── -->
+<main class="docs-main">
+
+  <h1>FlashAccess Documentation</h1>
+  <p class="docs-lead">
+    FlashAccess gives you a time-limited, IP-restricted web dashboard and MySQL credentials
+    for a single session. When time runs out the temp user is dropped and the firewall rule
+    is removed automatically.
+  </p>
+
+  <!-- ── Requirements ──────────────────────────────────────── -->
+  <h2 id="requirements">Requirements</h2>
+  <ul>
+    <li>Ubuntu 24.04 (22.04 works; other Linux distros need manual UFW setup)</li>
+    <li>MySQL 8.0+ running locally (socket or TCP)</li>
+    <li>nginx installed (<code>apt install nginx</code>)</li>
+    <li>UFW enabled (<code>ufw enable</code>) — FlashAccess manages rules automatically</li>
+    <li>A domain pointed at your server, behind Cloudflare (Full Strict TLS)</li>
+    <li>A Cloudflare origin certificate for your domain</li>
+  </ul>
+  <div class="callout">
+    <strong>Note:</strong> FlashAccess itself does not open any public ports. It listens on
+    <code>127.0.0.1:7432</code> and is exposed only through nginx. UFW rules it manages are for
+    direct MySQL TCP access used by the CLI activate path (Navicat etc.).
+  </div>
+
+  <!-- ── Installation ──────────────────────────────────────── -->
+  <h2 id="install">Installation</h2>
+  <p>Run the one-liner as root on your Ubuntu server:</p>
+<pre><span class="prompt">$ </span>curl -fsSL https://raw.githubusercontent.com/davidvos/flashaccess/main/install.sh | bash</pre>
+  <p>The installer will:</p>
+  <ol>
+    <li>Detect your architecture (amd64 / arm64) and download the correct binary to <code>/usr/local/bin/flashaccess</code></li>
+    <li>Create a <code>flashaccess</code> system user</li>
+    <li>Create <code>/var/lib/flashaccess/</code> (mode 0700) for encrypted config and session state</li>
+    <li>Install the systemd unit at <code>/etc/systemd/system/flashaccess.service</code></li>
+    <li>Write a sample nginx config to <code>/etc/nginx/sites-available/flashaccess</code> (if nginx is installed)</li>
+  </ol>
+
+  <h3>Manual install</h3>
+  <p>Download a binary directly from <a href="https://github.com/davidvos/flashaccess/releases" target="_blank" rel="noopener">GitHub Releases</a>:</p>
+<pre><span class="prompt">$ </span>wget https://github.com/davidvos/flashaccess/releases/latest/download/flashaccess-linux-amd64
+<span class="prompt">$ </span>chmod +x flashaccess-linux-amd64
+<span class="prompt">$ </span>sudo mv flashaccess-linux-amd64 /usr/local/bin/flashaccess</pre>
+
+  <!-- ── Connect ────────────────────────────────────────────── -->
+  <h2 id="connect">flashaccess connect</h2>
+  <p>
+    Before FlashAccess can start a session it needs to know how to reach MySQL and needs an
+    admin password to protect the session-creation UI. Run the wizard as root (or as the
+    <code>flashaccess</code> system user with write access to <code>/var/lib/flashaccess/</code>):
+  </p>
+<pre><span class="prompt">$ </span>sudo flashaccess connect</pre>
+  <p>The wizard prompts for:</p>
+  <ul>
+    <li><strong>MySQL host</strong> — default <code>127.0.0.1</code></li>
+    <li><strong>MySQL port</strong> — default <code>3306</code></li>
+    <li><strong>MySQL socket</strong> — leave blank for TCP; enter e.g. <code>/var/run/mysqld/mysqld.sock</code> for socket auth</li>
+    <li><strong>MySQL user</strong> — typically <code>root</code></li>
+    <li><strong>MySQL password</strong> — empty if using socket auth</li>
+    <li><strong>Dashboard listen address</strong> — default <code>127.0.0.1:7432</code></li>
+    <li><strong>Admin password</strong> — minimum 8 characters; protects the session-creation form</li>
+  </ul>
+  <p>
+    The wizard verifies the MySQL connection before saving. Config is encrypted with AES-256-GCM
+    and stored at <code>/var/lib/flashaccess/config.enc</code>. The master key is at
+    <code>/var/lib/flashaccess/master.key</code> — back this up.
+  </p>
+  <div class="callout callout-warn">
+    <strong>Warning:</strong> If you lose <code>master.key</code>, the config cannot be decrypted.
+    Run <code>flashaccess connect</code> again to reconfigure.
+  </div>
+
+  <!-- ── Serve ─────────────────────────────────────────────── -->
+  <h2 id="serve">Starting the server</h2>
+  <p>Start FlashAccess manually to verify it works:</p>
+<pre><span class="prompt">$ </span>sudo flashaccess serve
+FlashAccess dashboard listening on http://127.0.0.1:7432</pre>
+  <p>Then enable and start it as a service (see <a href="#systemd">systemd</a> section):</p>
+<pre><span class="prompt">$ </span>sudo systemctl enable --now flashaccess
+<span class="prompt">$ </span>sudo systemctl status flashaccess</pre>
+
+  <!-- ── Sessions ──────────────────────────────────────────── -->
+  <h2 id="sessions">Sessions</h2>
+  <p>
+    A session is a time-limited access grant. It consists of a cryptographic key, an allowed
+    IP/CIDR, a duration, and a temporary MySQL user provisioned for that session only.
+  </p>
+
+  <h3>Creating a session via the web dashboard</h3>
+  <ol>
+    <li>Visit <code>https://db.yourdomain.com</code></li>
+    <li>Enter your admin password</li>
+    <li>Fill in the allowed IP or CIDR (e.g. <code>203.0.113.42</code> or <code>10.0.0.0/24</code>), session duration, and any security options</li>
+    <li>Submit — the session key is shown <strong>once</strong>. Copy it now.</li>
+    <li>You'll be redirected to the key gate. Paste the key to enter the dashboard.</li>
+  </ol>
+  <div class="callout">
+    <strong>Key shown once:</strong> The raw key is never stored. Only its Argon2id hash
+    is persisted. If you lose the key, end the session and create a new one.
+  </div>
+
+  <h3>Session duration</h3>
+  <p>
+    Sessions accept Go duration strings: <code>30m</code>, <code>2h</code>, <code>12h</code>,
+    <code>24h</code>. The maximum is 24 hours. The timer is shown in the dashboard topbar and
+    colour-shifts to amber at 15 minutes and red at 5 minutes.
+  </p>
+
+  <h3>Ending a session</h3>
+  <p>Sessions end automatically on expiry. To end early:</p>
+  <ul>
+    <li>Click <strong>End Session</strong> in the dashboard topbar, or</li>
+    <li>Run <code>flashaccess session end &lt;id&gt;</code> from the server CLI</li>
+  </ul>
+  <p>On end: the temporary MySQL user is dropped, the UFW rule is closed, and all web tokens are revoked.</p>
+
+  <!-- ── Dashboard ─────────────────────────────────────────── -->
+  <h2 id="dashboard">Web dashboard</h2>
+  <p>The web dashboard is accessible only from the session's allowed IP. It provides:</p>
+  <ul>
+    <li><strong>Database list</strong> — all databases visible to the admin connection</li>
+    <li><strong>Table browser</strong> — engine, estimated row count, size; Browse and Structure links per table</li>
+    <li><strong>Row browser</strong> — paginated table view with sortable columns (25 / 50 / 100 rows)</li>
+    <li><strong>Structure view</strong> — full column info (type, nullable, key, default, extra, comment) and indexes</li>
+    <li><strong>SQL editor</strong> — run arbitrary queries; <kbd>Ctrl+Enter</kbd> submits; results or affected-row count shown inline</li>
+  </ul>
+  <div class="callout callout-warn">
+    <strong>Root access:</strong> The dashboard connects as your configured admin user (typically root).
+    All SQL editor queries run with that privilege. There is no query filtering or sandbox.
+  </div>
+
+  <!-- ── CLI activate ──────────────────────────────────────── -->
+  <h2 id="cli-activate">CLI activate (Navicat / TablePlus / mysql)</h2>
+  <p>
+    If you prefer to use a GUI client (Navicat, TablePlus, DBeaver) or the <code>mysql</code>
+    CLI directly, use the activate command. This verifies your session key and prints temporary
+    credentials for the session's MySQL user:
+  </p>
+<pre><span class="prompt">$ </span>flashaccess session activate &lt;session-id&gt; &lt;key&gt; &lt;your-ip&gt;
+
+GRANTED — session a91f3c2d7b40, 29m44s remaining
+Connect with:
+  host:     127.0.0.1:3306
+  user:     tmp_a91f3c
+  password: Kx9mRp2LnQv4</pre>
+  <p>
+    Use those credentials in Navicat etc. The TCP port is protected by UFW — only the allowed IP
+    can connect.
+  </p>
+  <div class="callout">
+    <strong>Find your session ID:</strong> It's shown on the key-display page after session creation.
+    You can also see active sessions via the dashboard URL path (e.g. <code>/dashboard</code>).
+  </div>
+
+  <!-- ── systemd ───────────────────────────────────────────── -->
+  <h2 id="systemd">systemd service</h2>
+  <p>The installer creates <code>/etc/systemd/system/flashaccess.service</code>. Key properties:</p>
+  <ul>
+    <li>Runs as the dedicated <code>flashaccess</code> system user</li>
+    <li>Restarts automatically on failure (<code>RestartSec=5s</code>)</li>
+    <li>Hardened: <code>NoNewPrivileges</code>, <code>ProtectSystem=strict</code>, <code>PrivateTmp</code></li>
+    <li>Listen address controlled by <code>FLASHACCESS_ADDR</code> env var (default <code>127.0.0.1:7432</code>)</li>
+  </ul>
+<pre><span class="prompt">$ </span>sudo systemctl enable --now flashaccess   <span class="comment"># start + enable on boot</span>
+<span class="prompt">$ </span>sudo systemctl status flashaccess
+<span class="prompt">$ </span>sudo journalctl -u flashaccess -f         <span class="comment"># follow logs</span></pre>
+
+  <!-- ── nginx ─────────────────────────────────────────────── -->
+  <h2 id="nginx">nginx + Cloudflare</h2>
+  <p>
+    FlashAccess must run behind nginx with Cloudflare Full (Strict) TLS. This is required
+    because IP enforcement reads <code>CF-Connecting-IP</code> — without Cloudflare, any client
+    could spoof this header.
+  </p>
+
+  <h3>1. Install your origin certificate</h3>
+  <p>In Cloudflare dashboard → SSL/TLS → Origin Server → Create Certificate. Save the certificate and key to your server:</p>
+<pre>/etc/ssl/cloudflare/origin.crt
+/etc/ssl/cloudflare/origin.key</pre>
+<pre><span class="prompt">$ </span>chmod 600 /etc/ssl/cloudflare/origin.key</pre>
+
+  <h3>2. Configure nginx</h3>
+  <p>The installer writes a sample config to <code>/etc/nginx/sites-available/flashaccess</code>. Edit it to set your domain:</p>
+<pre><span class="prompt">$ </span>sudo nano /etc/nginx/sites-available/flashaccess
+<span class="comment"># Replace YOURDOMAIN.COM with your actual domain</span></pre>
+  <p>Then enable it:</p>
+<pre><span class="prompt">$ </span>sudo ln -s /etc/nginx/sites-available/flashaccess /etc/nginx/sites-enabled/
+<span class="prompt">$ </span>sudo nginx -t           <span class="comment"># verify config</span>
+<span class="prompt">$ </span>sudo systemctl reload nginx</pre>
+
+  <h3>3. Set Cloudflare SSL mode</h3>
+  <p>In Cloudflare dashboard → SSL/TLS → Overview: set mode to <strong>Full (Strict)</strong>.</p>
+
+  <h3>4. Lock nginx to Cloudflare IPs (optional but recommended)</h3>
+  <p>
+    The sample nginx config includes a <code>geo</code> block that sets a variable based on
+    whether the request comes from a Cloudflare IP range. You can go further and add
+    <code>allow / deny</code> directives to the server block so nginx itself refuses non-Cloudflare
+    connections. Keep the IP list up to date from
+    <a href="https://www.cloudflare.com/ips-v4" target="_blank" rel="noopener">cloudflare.com/ips-v4</a>.
+  </p>
+
+  <!-- ── UFW ───────────────────────────────────────────────── -->
+  <h2 id="firewall">UFW / firewall</h2>
+  <p>
+    FlashAccess calls <code>ufw</code> to open and close MySQL TCP access (port 3306 by default)
+    for the session's allowed IP on session start and end. UFW must be installed and enabled.
+  </p>
+<pre><span class="prompt">$ </span>sudo ufw enable
+<span class="prompt">$ </span>sudo ufw status</pre>
+  <p>
+    To disable firewall management (e.g. on a dev machine without UFW):
+  </p>
+<pre>Environment=FLASHACCESS_NOFW=1   <span class="comment"># add to the systemd unit's [Service] section</span></pre>
+  <p>
+    The dashboard web port (7432) should <em>not</em> be open in UFW — it only needs to be
+    reachable from localhost, where nginx proxies to it.
+  </p>
+
+  <!-- ── Security ──────────────────────────────────────────── -->
+  <h2 id="security">Security model</h2>
+  <ul>
+    <li><strong>AES-256-GCM</strong> — config file encrypted at rest with a per-machine master key</li>
+    <li><strong>Argon2id</strong> — session keys hashed before storage; the raw key is never persisted</li>
+    <li><strong>bcrypt</strong> — admin password hashed (cost 12); 500ms artificial delay on failed login</li>
+    <li><strong>IP enforcement</strong> — checked on every authenticated request at the application layer via <code>CF-Connecting-IP</code></li>
+    <li><strong>Brute-force lockout</strong> — 5 failed key attempts locks the session for 5 minutes</li>
+    <li><strong>HttpOnly / Secure / SameSite=Strict cookies</strong> — web tokens issued as secure cookies</li>
+    <li><strong>In-memory token store</strong> — web tokens are not persisted; a server restart requires re-authentication</li>
+    <li><strong>Temporary MySQL users</strong> — named <code>tmp_&lt;hexid&gt;</code>; validated by a strict regex before any SQL; dropped on session end</li>
+  </ul>
+  <div class="callout callout-warn">
+    <strong>Threat model:</strong> FlashAccess is designed to protect against opportunistic access
+    and credential leakage — not against a sophisticated attacker who has already compromised the
+    server. The master key at <code>/var/lib/flashaccess/master.key</code> must be protected.
+  </div>
+
+  <!-- ── Environment vars ──────────────────────────────────── -->
+  <h2 id="env">Environment variables</h2>
+  <ul>
+    <li><code>FLASHACCESS_ADDR</code> — override the listen address (default <code>127.0.0.1:7432</code>)</li>
+    <li><code>FLASHACCESS_NOFW</code> — set to <code>1</code> to skip all UFW calls (dev / testing)</li>
+  </ul>
+
+  <!-- ── Build from source ─────────────────────────────────── -->
+  <h2 id="build">Building from source</h2>
+  <p>Requires Go 1.23+.</p>
+<pre><span class="prompt">$ </span>git clone https://github.com/davidvos/flashaccess.git
+<span class="prompt">$ </span>cd flashaccess
+<span class="prompt">$ </span>make build          <span class="comment"># produces bin/flashaccess</span>
+<span class="prompt">$ </span>make install        <span class="comment"># copies to /usr/local/bin (needs sudo)</span></pre>
+  <p>Cross-compile for both Linux targets:</p>
+<pre><span class="prompt">$ </span>make release        <span class="comment"># produces dist/flashaccess_v*_linux_{amd64,arm64} + checksums.txt</span></pre>
+
+  <!-- ── Releasing ─────────────────────────────────────────── -->
+  <h2 id="release">Releasing a new version</h2>
+  <ol>
+    <li>Commit all changes and ensure the working tree is clean</li>
+    <li>Tag the release: <code>git tag v1.0.0 &amp;&amp; git push origin v1.0.0</code></li>
+    <li>Run <code>make release</code> — outputs <code>dist/flashaccess_v1.0.0_linux_amd64</code>, <code>_arm64</code>, and <code>checksums.txt</code></li>
+    <li>Create a GitHub Release on the tag; upload the <code>dist/</code> files as release assets</li>
+    <li>The install script resolves the latest tag automatically via the GitHub API — no changes needed</li>
+  </ol>
+  <p>Build flags inject the version at link time via <code>-X main.version=$(VERSION)</code> (see <code>makefile</code>).</p>
+
+</main>
+
+<script>
+// Highlight active sidebar link on scroll
+(function() {
+  var links = document.querySelectorAll('.docs-sidebar-link');
+  var sections = Array.from(links).map(function(l) {
+    var id = l.getAttribute('href').slice(1);
+    return document.getElementById(id);
+  });
+  function onScroll() {
+    var scrollY = window.scrollY + 80;
+    var active = 0;
+    sections.forEach(function(s, i) {
+      if (s && s.offsetTop <= scrollY) active = i;
+    });
+    links.forEach(function(l) { l.classList.remove('active'); });
+    links[active].classList.add('active');
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+})();
+</script>
+</body>
+</html>
