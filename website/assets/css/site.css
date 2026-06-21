@@ -28,6 +28,16 @@
   --b50:  #FAF7F0;
   --b0:   #FEFCF8;
 
+  --f900: #3A1204;
+  --f800: #6A2408;
+  --f700: #8C3810;
+  --f600: #B44D1C;
+  --f500: #C96B2E;
+  --f400: #D98848;
+  --f300: #E9A87A;
+  --f200: #F4CEAD;
+  --f100: #FAE5D0;
+
   --notch: 8px;
   --font: 'Inter', system-ui, sans-serif;
   --font-mono: 'Inter', monospace;
@@ -47,15 +57,9 @@ code { font-family: var(--font-mono); }
   padding: 0 32px; gap: 24px; justify-content: space-between;
 }
 .nav-brand { display: flex; align-items: center; gap: 10px; }
-.logo-mark {
-  width: 20px; height: 20px; background: var(--g700);
-  transform: rotate(45deg); flex-shrink: 0; position: relative;
-}
-.logo-mark::after {
-  content: ''; position: absolute; inset: 5px; background: var(--g400);
-}
+.logo-mark { flex-shrink: 0; display: block; }
 .wordmark { font-size: 14px; font-weight: 600; color: var(--b50); letter-spacing: -0.01em; }
-.wordmark em { font-style: normal; color: var(--g400); }
+.wordmark em { font-style: normal; color: var(--f400); }
 .nav-links { display: flex; align-items: center; gap: 20px; }
 .nav-link {
   font-size: 12px; font-weight: 500; color: var(--b400);
@@ -104,7 +108,7 @@ code { font-family: var(--font-mono); }
   color: var(--b50); letter-spacing: -0.025em; line-height: 1.1;
   max-width: 720px; margin-bottom: 18px;
 }
-.hero h1 em { font-style: normal; color: var(--g400); }
+.hero h1 em { font-style: normal; color: var(--f400); }
 .hero-sub {
   font-size: clamp(14px, 1.5vw, 16px); color: var(--b400);
   max-width: 540px; margin-bottom: 40px; line-height: 1.7;

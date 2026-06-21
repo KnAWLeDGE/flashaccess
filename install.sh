@@ -50,7 +50,7 @@ case "$ARCH" in
     *)       error "Unsupported architecture: $ARCH" ;;
 esac
 
-BIN_URL="https://github.com/${REPO}/releases/download/${VERSION}/flashaccess-linux-${GOARCH}"
+BIN_URL="https://github.com/${REPO}/releases/download/${VERSION}/flashaccess_${VERSION}_linux_${GOARCH}"
 TMP=$(mktemp)
 info "Downloading binary from ${BIN_URL}"
 curl -fsSL -o "$TMP" "$BIN_URL"

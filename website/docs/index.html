@@ -9,13 +9,303 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../assets/css/site.css">
+  <style>
+    /* ── Detection widget ──────────────────────────────────── */
+    .detect-box {
+      background: #1a1a1a;
+      border: 1.5px solid #333;
+      border-radius: 6px;
+      padding: 22px 24px;
+      margin: 24px 0;
+    }
+    .detect-box h4 { margin: 0 0 10px; font-size: 14px; color: #f0f0f0; }
+    .detect-script { position: relative; }
+    .detect-script pre { margin: 0; padding-right: 70px; }
+    .detect-copy {
+      position: absolute; top: 10px; right: 10px;
+      padding: 4px 10px;
+      border: 1px solid #444;
+      border-radius: 3px;
+      background: #222;
+      color: #aaa;
+      font: 400 11px/1 'Inter', sans-serif;
+      cursor: pointer;
+    }
+    .detect-copy:hover { border-color: var(--g400); color: #fff; }
+    .detect-script pre {
+      background: #0d1117;
+      color: #e6edf3;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 12px;
+      line-height: 1.7;
+      border-left-color: #238636;
+    }
+    .detect-box p { color: #aaa !important; }
+    .detect-or { text-align: center; font-size: 12px; color: #666; margin: 14px 0 10px; }
+    .detect-paste {
+      width: 100%; box-sizing: border-box;
+      min-height: 90px;
+      background: #111;
+      border: 1.5px solid #444;
+      border-radius: 4px;
+      color: #e0e0e0;
+      font: 400 12px/1.5 'Courier New', monospace;
+      padding: 10px 12px;
+      resize: vertical;
+      outline: none;
+      transition: border-color .15s;
+    }
+    .detect-paste:focus { border-color: var(--g400, #6BAD6D); }
+    .detect-btn {
+      margin-top: 10px;
+      padding: 8px 18px;
+      border: 1.5px solid var(--g400, #6BAD6D);
+      border-radius: 4px;
+      background: rgba(107,173,109,.1);
+      color: var(--g400, #6BAD6D);
+      font: 600 13px/1 'Inter', sans-serif;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    .detect-btn:hover { background: rgba(107,173,109,.2); }
+
+    /* ── Requirements checklist ────────────────────────────── */
+    .req-list { margin: 18px 0 0; display: flex; flex-direction: column; gap: 8px; }
+    .req-item {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 10px 14px;
+      border: 1.5px solid var(--b700, #2d3a4a);
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    .req-item.ok    { border-color: rgba(107,173,109,.4); background: rgba(107,173,109,.07); }
+    .req-item.miss  { border-color: rgba(200,80,80,.35);  background: rgba(200,80,80,.06); }
+    .req-item.warn  { border-color: rgba(200,160,60,.35); background: rgba(200,160,60,.06); }
+    .req-icon { font-size: 16px; line-height: 1; flex-shrink: 0; margin-top: 1px; }
+    .req-item.ok   .req-icon { color: var(--g400, #6BAD6D); }
+    .req-item.miss .req-icon { color: #e05555; }
+    .req-item.warn .req-icon { color: #c8a23c; }
+    .req-name { font-weight: 600; color: #fff; }
+    .req-detail { color: var(--b300, #a8b8cc); font-size: 12px; margin-top: 2px; }
+    .req-action { margin-top: 4px; }
+    .req-action a { color: var(--g400, #6BAD6D); text-decoration: none; font-size: 12px; }
+    .req-action a:hover { text-decoration: underline; }
+
+    /* ── Optional badge ────────────────────────────────────── */
+    .optional-badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border: 1px solid var(--b600, #3d4f63);
+      border-radius: 3px;
+      font: 600 10px/1.4 'Inter', sans-serif;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      color: var(--b400, #8a9ab0);
+      vertical-align: middle;
+      margin-left: 8px;
+    }
+    h2 .optional-badge { font-size: 9px; }
+
+    /* ── Package picker ──────────────────────────────────────── */
+    .pkg-picker { margin: 28px 0; }
+    .pkg-group { margin-bottom: 28px; }
+    .pkg-group-label {
+      font-size: 11px; font-weight: 700; letter-spacing: .08em;
+      text-transform: uppercase; color: #888; margin-bottom: 10px;
+    }
+    .pkg-options { display: flex; flex-wrap: wrap; gap: 8px; }
+    .pkg-btn {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 6px 13px;
+      border: 1.5px solid #bbb;
+      border-radius: 4px; background: transparent;
+      color: #444; font: 500 13px/1 'Inter', sans-serif;
+      cursor: pointer; transition: border-color .15s, background .15s, color .15s;
+      user-select: none;
+    }
+    .pkg-btn:hover { border-color: var(--g600); color: var(--g700); }
+    .pkg-btn.active { border-color: var(--g600); background: rgba(61,122,63,.08); color: var(--g700); }
+    .pkg-btn .check { width: 14px; height: 14px; border: 1.5px solid currentColor; border-radius: 2px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .pkg-btn.active .check::after { content: '✓'; font-size: 10px; color: var(--g600); }
+    .pkg-block { display: none; margin-top: 20px; }
+    .pkg-block.visible { display: block; }
+    .pkg-block > .pkg-block-label {
+      font-size: 12px; font-weight: 600; color: #666;
+      margin-bottom: 8px; padding-left: 2px;
+    }
+    .pkg-version-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
+    .pkg-version-row span { font-size: 12px; color: #777; }
+    .ver-btn {
+      padding: 4px 10px; border: 1.5px solid #bbb; border-radius: 3px;
+      background: transparent; color: #555;
+      font: 500 12px/1 'Inter', sans-serif; cursor: pointer; transition: border-color .12s, background .12s;
+    }
+    .ver-btn:hover, .ver-btn.active { border-color: var(--g600); background: rgba(61,122,63,.08); color: var(--g700); }
+    .pkg-cmd-set { display: none; }
+    .pkg-cmd-set.visible { display: block; }
+    .pkg-ext-grid { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 14px; }
+    .ext-btn {
+      padding: 4px 10px; border: 1.5px solid var(--b700, #2d3a4a); border-radius: 3px;
+      background: transparent; color: var(--b300, #a8b8cc);
+      font: 400 12px/1 'Inter', sans-serif; cursor: pointer; transition: border-color .12s, background .12s;
+    }
+    .ext-btn:hover { border-color: var(--g400, #6BAD6D); }
+    .ext-btn.active { border-color: var(--g400, #6BAD6D); background: rgba(107,173,109,.1); color: #fff; }
+    #ext-cmd-output { margin-top: 10px; }
+
+    /* ── Clickable command lines ─────────────────────────────────── */
+    .cmd-line {
+      display: block;
+      border-radius: 3px;
+      margin: 0 -6px;
+      padding: 0 6px;
+      cursor: pointer;
+      transition: background .1s;
+      position: relative;
+    }
+    .cmd-line:hover { background: rgba(255,255,255,.07); }
+    .cmd-line.copied { background: rgba(107,173,109,.12); }
+    .cmd-line:not(.has-hint):hover::after {
+      content: 'copy';
+      position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+      font: 400 10px/1 'Inter', sans-serif;
+      color: rgba(255,255,255,.28);
+      letter-spacing: .05em;
+      pointer-events: none;
+    }
+    .cmd-line.copied:not(.has-hint)::after { content: '✓'; color: #6BAD6D; }
+    .copy-hint {
+      float: right;
+      font: 400 10px/1.8 'Inter', sans-serif;
+      color: #6BAD6D;
+      opacity: .6;
+      pointer-events: none;
+      transition: opacity .12s;
+      letter-spacing: .03em;
+    }
+    .cmd-line:hover .copy-hint,
+    .cmd-line.copied .copy-hint { opacity: 1; }
+
+    /* ── CF domain steps ─────────────────────────────────────── */
+    .setup-steps { counter-reset: setup-step; margin: 0; padding: 0; list-style: none; }
+    .setup-step { display: flex; gap: 18px; margin-bottom: 28px; }
+    .setup-step-num {
+      counter-increment: setup-step;
+      min-width: 32px; height: 32px;
+      border: 2px solid var(--g400, #6BAD6D); border-radius: 3px;
+      display: flex; align-items: center; justify-content: center;
+      font: 700 13px/1 'Inter', sans-serif; color: var(--g400, #6BAD6D);
+      flex-shrink: 0; margin-top: 2px;
+    }
+    .setup-step-body h4 { margin: 0 0 6px; font-size: 15px; color: var(--b900, #1a1a1a); }
+    .setup-step-body p  { margin: 0 0 8px; font-size: 14px; }
+
+    /* ── Mark-as-done button on section headings ─────────────────── */
+    .section-done-btn {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 9px; margin-left: 10px;
+      border: 1px solid var(--b300, #ccc); border-radius: 3px;
+      background: transparent; color: var(--b500, #9E8A5C);
+      font: 500 10px/1 'Inter', sans-serif; cursor: pointer; vertical-align: middle;
+      transition: all .12s;
+    }
+    .section-done-btn:hover { border-color: var(--g500); color: var(--g600); }
+    .section-done-btn.done { border-color: var(--g500); color: var(--g600); background: rgba(79,150,81,.08); }
+    .section-done-btn.done::before { content: '✓ '; }
+
+    /* ── Setup progress widget ────────────────────────────────────── */
+    .setup-widget {
+      position: fixed; top: 64px; right: 16px; width: 236px;
+      background: #1c1c1c; border: 1.5px solid #333; border-radius: 6px;
+      z-index: 300; font-family: 'Inter', sans-serif;
+      box-shadow: 0 6px 24px rgba(0,0,0,.45);
+    }
+    .setup-widget-hd {
+      padding: 9px 12px; border-bottom: 1px solid #2e2e2e;
+      display: flex; align-items: center; gap: 6px; cursor: grab;
+    }
+    .setup-widget-hd:active { cursor: grabbing; }
+    .setup-widget-title { font: 600 11px/1 'Inter', sans-serif; color: #e0e0e0; flex: 1; letter-spacing: .03em; text-transform: uppercase; }
+    .widget-ctrl { width: 20px; height: 20px; border: none; background: none; color: #555; cursor: pointer;
+      font-size: 14px; line-height: 1; display: flex; align-items: center; justify-content: center;
+      border-radius: 3px; padding: 0; transition: color .1s, background .1s; }
+    .widget-ctrl:hover { color: #ccc; background: rgba(255,255,255,.08); }
+    .setup-widget-body { padding: 6px 0 8px; max-height: calc(100vh - 120px); overflow-y: auto; }
+    .widget-group {
+      font: 700 9px/1 'Inter', sans-serif; letter-spacing: .1em; text-transform: uppercase;
+      color: #484848; padding: 10px 12px 4px;
+    }
+    .widget-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 5px 12px; font: 400 12px/1.3 'Inter', sans-serif;
+      color: #888; cursor: pointer; transition: background .1s; text-decoration: none;
+    }
+    .widget-item:hover { background: rgba(255,255,255,.05); color: #bbb; }
+    .widget-item.w-done { color: #6BAD6D; }
+    .widget-item.w-ok   { color: #6BAD6D; }
+    .widget-item.w-miss { color: #cc4444; }
+    .widget-item.w-warn { color: #c8a23c; }
+    .w-check {
+      width: 14px; height: 14px; border: 1.5px solid #3a3a3a; border-radius: 2px;
+      flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+      font-size: 9px; transition: all .1s;
+    }
+    .widget-item.w-done .w-check { border-color: #6BAD6D; background: rgba(107,173,109,.18); color: #6BAD6D; }
+    .widget-item.w-done .w-check::after { content: '✓'; }
+    .widget-item.w-ok .w-check { border-color: #6BAD6D; background: rgba(107,173,109,.15); color: #6BAD6D; }
+    .widget-item.w-ok .w-check::after { content: '✓'; }
+    .widget-item.w-miss .w-check { border-color: #cc4444; background: rgba(204,68,68,.1); color: #cc4444; }
+    .widget-item.w-miss .w-check::after { content: '✗'; }
+    .widget-item.w-warn .w-check { border-color: #c8a23c; background: rgba(200,162,60,.1); color: #c8a23c; }
+    .widget-item.w-warn .w-check::after { content: '!'; }
+    .w-label { flex: 1; font-size: 11.5px; }
+    .w-status { font-size: 10px; color: #444; font-style: italic; white-space: nowrap; }
+    .widget-item.w-done .w-status { color: #4a8a4c; }
+    .widget-item.w-ok   .w-status { color: #4a8a4c; }
+    /* Reopen toggle button */
+    .widget-toggle {
+      position: fixed; bottom: 20px; right: 20px; z-index: 300;
+      padding: 7px 14px; border: 1.5px solid #333; border-radius: 20px;
+      background: #1c1c1c; color: #aaa; font: 500 11px/1 'Inter', sans-serif;
+      cursor: pointer; box-shadow: 0 3px 12px rgba(0,0,0,.4); transition: color .1s, border-color .1s;
+      display: none;
+    }
+    .widget-toggle:hover { color: #fff; border-color: #555; }
+
+    /* ── Copy-all button for config/non-command pre blocks ───────── */
+    .pre-wrap { position: relative; }
+    .pre-copy-btn {
+      position: absolute; top: 8px; right: 8px;
+      padding: 3px 9px;
+      border: 1px solid rgba(255,255,255,.15);
+      border-radius: 3px;
+      background: rgba(0,0,0,.35);
+      color: rgba(255,255,255,.5);
+      font: 400 10px/1.4 'Inter', sans-serif;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity .15s, color .15s, border-color .15s;
+    }
+    .pre-wrap:hover .pre-copy-btn { opacity: 1; }
+    .pre-copy-btn:hover { color: #fff; border-color: rgba(255,255,255,.4); }
+    .pre-copy-btn.copied { color: #6BAD6D; border-color: #6BAD6D; opacity: 1; }
+  </style>
 </head>
 <body class="docs-body">
 
 <!-- ── Nav ──────────────────────────────────────────────────── -->
 <nav class="site-nav">
   <div class="nav-brand">
-    <div class="logo-mark"></div>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" class="logo-mark" aria-label="FlashAccess fox logo">
+      <polygon points="1,14 7.5,0 13.5,14" fill="#7A3010"/>
+      <polygon points="10.5,14 17,0 23,14" fill="#7A3010"/>
+      <rect x="0" y="11" width="24" height="13" rx="4" fill="#7A3010"/>
+      <polygon points="3,13 7.5,3.5 12,13" fill="#C85A20"/>
+      <polygon points="12,13 16.5,3.5 21,13" fill="#C85A20"/>
+      <circle cx="7.5" cy="17" r="1.5" fill="#F0A060"/>
+      <circle cx="16.5" cy="17" r="1.5" fill="#F0A060"/>
+      <path d="M13.5,19 L10.5,19 L11.2,21.5 L9.5,21.5 L12,24 L12,22 L14,22 Z" fill="#F0A060"/>
+    </svg>
     <span class="wordmark"><a href="../" style="color:inherit">Flash<em>Access</em></a></span>
   </div>
   <div class="nav-links">
@@ -28,30 +318,38 @@
 <!-- ── Sidebar ───────────────────────────────────────────────── -->
 <aside class="docs-sidebar">
   <div class="docs-sidebar-section">
-    <div class="docs-sidebar-label">Getting started</div>
-    <a href="#requirements"  class="docs-sidebar-link">Requirements</a>
-    <a href="#install"       class="docs-sidebar-link">Installation</a>
-    <a href="#connect"       class="docs-sidebar-link">flashaccess connect</a>
-    <a href="#serve"         class="docs-sidebar-link">Starting the server</a>
+    <div class="docs-sidebar-label">Prerequisites</div>
+    <a href="#requirements"      class="docs-sidebar-link">Requirements &amp; detection</a>
+    <a href="#prereq-mysql"      class="docs-sidebar-link">MySQL server</a>
+    <a href="#prereq-nginx"      class="docs-sidebar-link">nginx</a>
+    <a href="#prereq-ufw"        class="docs-sidebar-link">UFW firewall</a>
+    <a href="#cloudflare-domain" class="docs-sidebar-link">Cloudflare + domain</a>
+    <a href="#optional-packages" class="docs-sidebar-link">Additional packages</a>
+  </div>
+  <div class="docs-sidebar-section">
+    <div class="docs-sidebar-label">Installation</div>
+    <a href="#install"           class="docs-sidebar-link">Install FlashAccess</a>
+    <a href="#connect"           class="docs-sidebar-link">flashaccess connect</a>
+    <a href="#serve"             class="docs-sidebar-link">Starting the server</a>
   </div>
   <div class="docs-sidebar-section">
     <div class="docs-sidebar-label">Usage</div>
-    <a href="#sessions"      class="docs-sidebar-link">Sessions</a>
-    <a href="#dashboard"     class="docs-sidebar-link">Web dashboard</a>
-    <a href="#cli-activate"  class="docs-sidebar-link">CLI activate (Navicat)</a>
+    <a href="#sessions"          class="docs-sidebar-link">Sessions</a>
+    <a href="#dashboard"         class="docs-sidebar-link">Web dashboard</a>
+    <a href="#cli-activate"      class="docs-sidebar-link">CLI activate (Navicat)</a>
   </div>
   <div class="docs-sidebar-section">
     <div class="docs-sidebar-label">Deployment</div>
-    <a href="#systemd"       class="docs-sidebar-link">systemd service</a>
-    <a href="#nginx"         class="docs-sidebar-link">nginx + Cloudflare</a>
-    <a href="#firewall"      class="docs-sidebar-link">UFW / firewall</a>
+    <a href="#systemd"           class="docs-sidebar-link">systemd service</a>
+    <a href="#nginx"             class="docs-sidebar-link">nginx + Cloudflare TLS</a>
+    <a href="#firewall"          class="docs-sidebar-link">UFW rules</a>
   </div>
   <div class="docs-sidebar-section">
     <div class="docs-sidebar-label">Reference</div>
-    <a href="#security"      class="docs-sidebar-link">Security model</a>
-    <a href="#env"           class="docs-sidebar-link">Environment vars</a>
-    <a href="#build"         class="docs-sidebar-link">Building from source</a>
-    <a href="#release"       class="docs-sidebar-link">Releasing</a>
+    <a href="#security"          class="docs-sidebar-link">Security model</a>
+    <a href="#env"               class="docs-sidebar-link">Environment vars</a>
+    <a href="#build"             class="docs-sidebar-link">Building from source</a>
+    <a href="#release"           class="docs-sidebar-link">Releasing</a>
   </div>
 </aside>
 
@@ -65,25 +363,510 @@
     is removed automatically.
   </p>
 
-  <!-- ── Requirements ──────────────────────────────────────── -->
-  <h2 id="requirements">Requirements</h2>
+  <!-- ════════════════════════════════════════════════════════
+       REQUIREMENTS + DETECTION
+  ═════════════════════════════════════════════════════════════ -->
+  <h2 id="requirements">Requirements &amp; detection</h2>
+  <p>
+    FlashAccess requires the following on your Ubuntu 24.04 server. Use the detection script
+    below to automatically check what is already present.
+  </p>
+
   <ul>
-    <li>Ubuntu 24.04 (22.04 works; other Linux distros need manual UFW setup)</li>
-    <li>MySQL 8.0+ running locally (socket or TCP)</li>
-    <li>nginx installed (<code>apt install nginx</code>)</li>
-    <li>UFW enabled (<code>ufw enable</code>) — FlashAccess manages rules automatically</li>
-    <li>A domain pointed at your server, behind Cloudflare (Full Strict TLS)</li>
-    <li>A Cloudflare origin certificate for your domain</li>
+    <li><strong>Ubuntu 24.04</strong> (22.04 works; other Linux distros need manual UFW setup)</li>
+    <li><strong>MySQL 8.0+</strong> running locally — <a href="#prereq-mysql">install guide ↓</a> <span class="optional-badge">optional setup</span></li>
+    <li><strong>nginx</strong> — <a href="#prereq-nginx">install guide ↓</a> <span class="optional-badge">optional setup</span></li>
+    <li><strong>UFW</strong> enabled — <a href="#prereq-ufw">setup guide ↓</a> <span class="optional-badge">optional setup</span></li>
+    <li><strong>A domain behind Cloudflare</strong> with Full (Strict) TLS — <a href="#cloudflare-domain">walkthrough ↓</a> <span class="optional-badge">optional setup</span></li>
+    <li><strong>A Cloudflare origin certificate</strong> — created in step 5 of the Cloudflare guide</li>
   </ul>
+
   <div class="callout">
     <strong>Note:</strong> FlashAccess itself does not open any public ports. It listens on
     <code>127.0.0.1:7432</code> and is exposed only through nginx. UFW rules it manages are for
-    direct MySQL TCP access used by the CLI activate path (Navicat etc.).
+    direct MySQL TCP access used by the CLI activate path.
   </div>
 
-  <!-- ── Installation ──────────────────────────────────────── -->
-  <h2 id="install">Installation</h2>
-  <p>Run the one-liner as root on your Ubuntu server:</p>
+  <div class="detect-box">
+    <h4>Server detection script</h4>
+    <p style="font-size:13px;margin:0 0 12px;color:var(--b300,#a8b8cc);">
+      Run this on your Ubuntu server (as root or with sudo). It outputs JSON describing what
+      is already installed. Paste the result into the field below to automatically check off requirements.
+    </p>
+    <div class="detect-script">
+<pre id="detect-script-text">bash &lt;&lt;'EOF'
+#!/usr/bin/env bash
+detect() {
+  local key="$1"; shift
+  if command -v "$1" &>/dev/null; then
+    local v; v=$("$@" 2>&1 | head -1 | sed 's/"/\\"/g')
+    printf '  "%s": "%s"' "$key" "$v"
+  else
+    printf '  "%s": null' "$key"
+  fi
+}
+printf "{\n"
+printf "  "; detect mysql    mysqladmin --version;  printf ",\n"
+printf "  "; detect nginx    nginx -v;              printf ",\n"
+printf "  "; detect php      php --version;         printf ",\n"
+printf "  "; detect python3  python3 --version;     printf ",\n"
+printf "  "; detect go       go version;            printf ",\n"
+printf "  "; detect node     node --version;        printf ",\n"
+printf "  "; detect redis    redis-cli --version;   printf ",\n"
+printf "  "; detect docker   docker --version;      printf ",\n"
+printf "  "; detect git      git --version;         printf ",\n"
+printf "  "; detect composer composer --version;    printf ",\n"
+printf "  "; detect flashaccess flashaccess version; printf ",\n"
+ufw_status=$(ufw status 2>/dev/null | awk '/^Status:/{print $2}')
+printf '  "ufw": "%s",\n' "${ufw_status:-unknown}"
+printf '  "fa_config": %s,\n' "$([ -f /var/lib/flashaccess/config.enc ] && echo '"present"' || echo 'null')"
+fa_svc=$(systemctl is-active flashaccess 2>/dev/null | tr -d '\n'); [ -z "$fa_svc" ] && fa_svc="not-found"
+printf '  "fa_service": "%s"\n' "$fa_svc"
+printf "}\n"
+EOF</pre>
+      <button class="detect-copy" onclick="copyDetectScript(this)">Copy</button>
+    </div>
+    <div class="detect-or">— paste the JSON output below —</div>
+    <textarea id="detect-json" class="detect-paste" placeholder='{"mysql": "mysqladmin  Ver 8.0.40 ...", "nginx": "nginx version: nginx/1.24.0", ...}'></textarea>
+    <button class="detect-btn" onclick="processDetect()">Check requirements</button>
+    <div id="req-status" class="req-list" style="display:none;"></div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════
+       PREREQUISITE: MYSQL
+  ═════════════════════════════════════════════════════════════ -->
+  <h2 id="prereq-mysql">MySQL server <span class="optional-badge">optional — skip if MySQL is already installed</span></h2>
+  <p>
+    FlashAccess connects to an existing MySQL 8.0+ instance running on the same server.
+    If MySQL is already installed, skip this section entirely.
+  </p>
+  <p>Install MySQL Server on Ubuntu 24.04:</p>
+<pre><span class="prompt">$ </span>sudo apt update
+<span class="prompt">$ </span>sudo apt install -y mysql-server
+<span class="prompt">$ </span>sudo systemctl enable --now mysql</pre>
+
+  <p>Run the security hardening wizard (recommended):</p>
+<pre><span class="prompt">$ </span>sudo mysql_secure_installation</pre>
+  <p>The wizard will ask you to:</p>
+  <ul>
+    <li>Set or validate the root password policy</li>
+    <li>Remove anonymous users</li>
+    <li>Disallow remote root login</li>
+    <li>Remove the test database</li>
+  </ul>
+  <p>Verify MySQL is running and accessible:</p>
+<pre><span class="prompt">$ </span>sudo mysql -u root
+mysql&gt; SHOW DATABASES;
+mysql&gt; EXIT;</pre>
+
+  <h3>Allow socket authentication (recommended)</h3>
+  <p>
+    By default Ubuntu's MySQL uses socket authentication for root — no password needed when
+    running as root. This is the most secure setup and is what FlashAccess supports out of
+    the box (leave the MySQL password blank in <code>flashaccess connect</code>):
+  </p>
+<pre><span class="prompt">$ </span>sudo mysql -u root -e "SELECT user, plugin FROM mysql.user WHERE user='root';"
+<span class="comment"># Should show: plugin = auth_socket or caching_sha2_password</span></pre>
+  <p>If you prefer password auth, set a root password. First open a MySQL shell:</p>
+<pre><span class="prompt">$ </span>sudo mysql</pre>
+  <p>Then run inside MySQL:</p>
+<pre>mysql&gt; ALTER USER 'root'@'localhost' IDENTIFIED WITH caching_sha2_password BY 'yourpassword';
+mysql&gt; FLUSH PRIVILEGES;
+mysql&gt; EXIT;</pre>
+
+  <!-- ════════════════════════════════════════════════════════
+       PREREQUISITE: NGINX
+  ═════════════════════════════════════════════════════════════ -->
+  <h2 id="prereq-nginx">nginx <span class="optional-badge">optional — skip if nginx is already installed</span></h2>
+  <p>
+    FlashAccess listens on <code>127.0.0.1:7432</code> and must be reverse-proxied through nginx.
+    If nginx is already installed, skip this section.
+  </p>
+<pre><span class="prompt">$ </span>sudo apt update
+<span class="prompt">$ </span>sudo apt install -y nginx
+<span class="prompt">$ </span>sudo systemctl enable --now nginx</pre>
+
+  <p>Allow nginx through UFW:</p>
+<pre><span class="prompt">$ </span>sudo ufw allow 'Nginx Full'   <span class="comment"># opens ports 80 and 443</span></pre>
+
+  <p>Verify nginx is running:</p>
+<pre><span class="prompt">$ </span>curl -I http://localhost
+<span class="comment"># Should return: HTTP/1.1 200 OK</span>
+<span class="prompt">$ </span>sudo nginx -t   <span class="comment"># check config syntax</span></pre>
+
+  <p>
+    nginx configuration for FlashAccess is handled during installation — the installer writes
+    a sample config to <code>/etc/nginx/sites-available/flashaccess</code>. The
+    <a href="#nginx">nginx + Cloudflare TLS</a> deployment section covers enabling it.
+  </p>
+
+  <!-- ════════════════════════════════════════════════════════
+       PREREQUISITE: UFW
+  ═════════════════════════════════════════════════════════════ -->
+  <h2 id="prereq-ufw">UFW firewall <span class="optional-badge">optional — skip if UFW is already enabled</span></h2>
+  <p>
+    FlashAccess uses UFW to open and close MySQL TCP access per session. UFW must be installed
+    and enabled. If <code>ufw status</code> already shows <em>active</em>, skip this section.
+  </p>
+  <div class="callout callout-warn">
+    <strong>Important:</strong> Allow SSH before enabling UFW, or you will lock yourself out of the server.
+  </div>
+<pre><span class="prompt">$ </span>sudo apt install -y ufw
+<span class="prompt">$ </span>sudo ufw default deny incoming
+<span class="prompt">$ </span>sudo ufw default allow outgoing
+<span class="prompt">$ </span>sudo ufw allow ssh           <span class="comment"># MUST do this first</span>
+<span class="prompt">$ </span>sudo ufw allow 'Nginx Full'  <span class="comment"># ports 80 + 443</span>
+<span class="prompt">$ </span>sudo ufw enable
+<span class="prompt">$ </span>sudo ufw status verbose</pre>
+
+  <div class="callout">
+    Do <strong>not</strong> open port 3306 (MySQL) in UFW manually — FlashAccess manages
+    that automatically per session, opening it only for the session's allowed IP and closing
+    it again when the session ends.
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════
+       CLOUDFLARE + DOMAIN
+  ═════════════════════════════════════════════════════════════ -->
+  <h2 id="cloudflare-domain">Cloudflare + domain setup <span class="optional-badge">optional — skip if already configured</span></h2>
+  <p>
+    FlashAccess requires a domain proxied through Cloudflare with <strong>Full (Strict)</strong>
+    TLS. This walkthrough covers a fresh setup from scratch. Skip any step already completed.
+  </p>
+
+  <ol class="setup-steps">
+    <li class="setup-step">
+      <div class="setup-step-num">1</div>
+      <div class="setup-step-body">
+        <h4>Register a domain</h4>
+        <p>
+          Buy a domain from any registrar. <a href="https://dash.cloudflare.com" target="_blank" rel="noopener">Cloudflare Registrar</a>
+          is cheapest (at-cost, no markup). For a database tool you typically want a subdomain like
+          <code>db.yourdomain.com</code>. If you already have a domain, go to step 2.
+        </p>
+      </div>
+    </li>
+    <li class="setup-step">
+      <div class="setup-step-num">2</div>
+      <div class="setup-step-body">
+        <h4>Add the domain to Cloudflare</h4>
+        <p>In <a href="https://dash.cloudflare.com" target="_blank" rel="noopener">Cloudflare dashboard</a> → <strong>Add a domain</strong>:</p>
+        <ol>
+          <li>Enter your root domain (e.g. <code>yourdomain.com</code>) and choose <strong>Free</strong> plan</li>
+          <li>Cloudflare scans existing DNS — review and confirm</li>
+          <li>Copy the two <strong>Cloudflare nameservers</strong> shown</li>
+          <li>Go to your registrar's DNS settings and replace the existing nameservers with the Cloudflare ones</li>
+        </ol>
+        <p>Propagation typically takes 5–60 minutes. Cloudflare will email you when it's active.</p>
+      </div>
+    </li>
+    <li class="setup-step">
+      <div class="setup-step-num">3</div>
+      <div class="setup-step-body">
+        <h4>Add an A record pointing to your server</h4>
+        <p>Cloudflare → your domain → <strong>DNS → Records → Add record</strong>:</p>
+        <ul>
+          <li><strong>Type:</strong> A</li>
+          <li><strong>Name:</strong> <code>db</code> (creates <code>db.yourdomain.com</code>) or <code>@</code> for the root</li>
+          <li><strong>IPv4 address:</strong> your server's public IP</li>
+          <li><strong>Proxy status:</strong> Proxied (orange cloud) — <em>required</em></li>
+        </ul>
+      </div>
+    </li>
+    <li class="setup-step">
+      <div class="setup-step-num">4</div>
+      <div class="setup-step-body">
+        <h4>Set SSL/TLS mode to Full (Strict)</h4>
+        <p>
+          Cloudflare → your domain → <strong>SSL/TLS → Overview</strong> → select <strong>Full (strict)</strong>.
+        </p>
+        <div class="callout callout-warn">
+          <strong>Do not use "Flexible"</strong> — it allows unencrypted HTTP between Cloudflare and
+          your server and breaks FlashAccess IP enforcement.
+        </div>
+      </div>
+    </li>
+    <li class="setup-step">
+      <div class="setup-step-num">5</div>
+      <div class="setup-step-body">
+        <h4>Create a Cloudflare origin certificate</h4>
+        <p>Cloudflare → your domain → <strong>SSL/TLS → Origin Server → Create Certificate</strong>:</p>
+        <ul>
+          <li>Let Cloudflare generate the private key</li>
+          <li>Add hostnames: <code>yourdomain.com</code> and <code>*.yourdomain.com</code></li>
+          <li>Choose 15-year validity, then click <strong>Create</strong></li>
+        </ul>
+        <p>Copy the certificate and private key (shown once). On your server:</p>
+<pre><span class="prompt">$ </span>sudo mkdir -p /etc/ssl/cloudflare
+<span class="prompt">$ </span>sudo nano /etc/ssl/cloudflare/origin.crt   <span class="comment"># paste the certificate</span>
+<span class="prompt">$ </span>sudo nano /etc/ssl/cloudflare/origin.key   <span class="comment"># paste the private key</span>
+<span class="prompt">$ </span>sudo chmod 600 /etc/ssl/cloudflare/origin.key
+<span class="prompt">$ </span>sudo chmod 644 /etc/ssl/cloudflare/origin.crt</pre>
+      </div>
+    </li>
+    <li class="setup-step">
+      <div class="setup-step-num">6</div>
+      <div class="setup-step-body">
+        <h4>(Optional) Lock nginx to Cloudflare IPs only</h4>
+        <p>
+          To block clients who hit your server IP directly (bypassing Cloudflare), add these
+          <code>allow</code>/<code>deny</code> directives inside your nginx <code>server { }</code> block:
+        </p>
+<pre><span class="comment"># Cloudflare IPv4 ranges (keep updated from cloudflare.com/ips-v4)</span>
+allow 103.21.244.0/22;  allow 103.22.200.0/22;  allow 103.31.4.0/22;
+allow 104.16.0.0/13;    allow 104.24.0.0/14;    allow 108.162.192.0/18;
+allow 131.0.72.0/22;    allow 141.101.64.0/18;  allow 162.158.0.0/15;
+allow 172.64.0.0/13;    allow 173.245.48.0/20;  allow 188.114.96.0/20;
+allow 190.93.240.0/20;  allow 197.234.240.0/22; allow 198.41.128.0/17;
+<span class="comment"># Cloudflare IPv6</span>
+allow 2400:cb00::/32; allow 2606:4700::/32; allow 2803:f800::/32;
+allow 2405:b500::/32; allow 2405:8100::/32; allow 2a06:98c0::/29; allow 2c0f:f248::/32;
+deny all;</pre>
+      </div>
+    </li>
+  </ol>
+
+  <!-- ════════════════════════════════════════════════════════
+       OPTIONAL PACKAGES
+  ═════════════════════════════════════════════════════════════ -->
+  <h2 id="optional-packages">Additional packages <span class="optional-badge">optional</span></h2>
+  <p>
+    Select any additional packages you want to install on your server. Commands appear
+    below for each selection and update dynamically.
+  </p>
+
+  <div class="pkg-picker">
+
+    <!-- PHP -->
+    <div class="pkg-group">
+      <div class="pkg-group-label">PHP</div>
+      <div class="pkg-options">
+        <button class="pkg-btn" data-pkg="php" onclick="togglePkg(this)"><span class="check"></span> PHP</button>
+        <button class="pkg-btn" data-pkg="composer" onclick="togglePkg(this)"><span class="check"></span> Composer</button>
+      </div>
+      <div id="block-php" class="pkg-block">
+        <div class="pkg-block-label">PHP version (uses ondrej/php PPA — supports all versions on Ubuntu 24.04):</div>
+        <div class="pkg-version-row">
+          <span>Version:</span>
+          <button class="ver-btn active" data-ver="php" data-val="8.5" onclick="selectVer(this,'php')">8.5 (latest)</button>
+          <button class="ver-btn" data-ver="php" data-val="8.4" onclick="selectVer(this,'php')">8.4</button>
+          <button class="ver-btn" data-ver="php" data-val="8.3" onclick="selectVer(this,'php')">8.3</button>
+          <button class="ver-btn" data-ver="php" data-val="8.2" onclick="selectVer(this,'php')">8.2</button>
+          <button class="ver-btn" data-ver="php" data-val="8.1" onclick="selectVer(this,'php')">8.1</button>
+          <button class="ver-btn" data-ver="php" data-val="7.4" onclick="selectVer(this,'php')">7.4</button>
+        </div>
+        <div id="php-cmd-8.5" class="pkg-cmd-set visible">
+<pre><span class="prompt">$ </span>sudo apt install -y software-properties-common
+<span class="prompt">$ </span>sudo add-apt-repository ppa:ondrej/php -y &amp;&amp; sudo apt update
+<span class="prompt">$ </span>sudo apt install -y php8.5 php8.5-fpm php8.5-cli php8.5-common</pre>
+        </div>
+        <div id="php-cmd-8.4" class="pkg-cmd-set">
+<pre><span class="prompt">$ </span>sudo apt install -y software-properties-common
+<span class="prompt">$ </span>sudo add-apt-repository ppa:ondrej/php -y &amp;&amp; sudo apt update
+<span class="prompt">$ </span>sudo apt install -y php8.4 php8.4-fpm php8.4-cli php8.4-common</pre>
+        </div>
+        <div id="php-cmd-8.3" class="pkg-cmd-set">
+<pre><span class="prompt">$ </span>sudo apt install -y software-properties-common
+<span class="prompt">$ </span>sudo add-apt-repository ppa:ondrej/php -y &amp;&amp; sudo apt update
+<span class="prompt">$ </span>sudo apt install -y php8.3 php8.3-fpm php8.3-cli php8.3-common</pre>
+        </div>
+        <div id="php-cmd-8.2" class="pkg-cmd-set">
+<pre><span class="prompt">$ </span>sudo apt install -y software-properties-common
+<span class="prompt">$ </span>sudo add-apt-repository ppa:ondrej/php -y &amp;&amp; sudo apt update
+<span class="prompt">$ </span>sudo apt install -y php8.2 php8.2-fpm php8.2-cli php8.2-common</pre>
+        </div>
+        <div id="php-cmd-8.1" class="pkg-cmd-set">
+<pre><span class="prompt">$ </span>sudo apt install -y software-properties-common
+<span class="prompt">$ </span>sudo add-apt-repository ppa:ondrej/php -y &amp;&amp; sudo apt update
+<span class="prompt">$ </span>sudo apt install -y php8.1 php8.1-fpm php8.1-cli php8.1-common</pre>
+        </div>
+        <div id="php-cmd-8.0" class="pkg-cmd-set">
+<pre><span class="prompt">$ </span>sudo apt install -y software-properties-common
+<span class="prompt">$ </span>sudo add-apt-repository ppa:ondrej/php -y &amp;&amp; sudo apt update
+<span class="prompt">$ </span>sudo apt install -y php8.0 php8.0-fpm php8.0-cli php8.0-common</pre>
+        </div>
+        <div id="php-cmd-7.4" class="pkg-cmd-set">
+<pre><span class="prompt">$ </span>sudo apt install -y software-properties-common
+<span class="prompt">$ </span>sudo add-apt-repository ppa:ondrej/php -y &amp;&amp; sudo apt update
+<span class="prompt">$ </span>sudo apt install -y php7.4 php7.4-fpm php7.4-cli php7.4-common</pre>
+        </div>
+        <div class="pkg-block-label" style="margin-top:18px;">PHP extensions (select any):</div>
+        <div class="pkg-ext-grid">
+          <button class="ext-btn" data-ext="mysqli"    onclick="toggleExt(this)">mysqli</button>
+          <button class="ext-btn" data-ext="pdo"       onclick="toggleExt(this)">pdo <span style="opacity:.5;font-size:10px">(built-in)</span></button>
+          <button class="ext-btn" data-ext="pdo-mysql" onclick="toggleExt(this)">pdo_mysql</button>
+          <button class="ext-btn" data-ext="pdo-pgsql" onclick="toggleExt(this)">pdo_pgsql</button>
+          <button class="ext-btn" data-ext="curl"      onclick="toggleExt(this)">curl</button>
+          <button class="ext-btn" data-ext="gd"        onclick="toggleExt(this)">gd</button>
+          <button class="ext-btn" data-ext="mbstring"  onclick="toggleExt(this)">mbstring</button>
+          <button class="ext-btn" data-ext="xml"       onclick="toggleExt(this)">xml</button>
+          <button class="ext-btn" data-ext="zip"       onclick="toggleExt(this)">zip</button>
+          <button class="ext-btn" data-ext="intl"      onclick="toggleExt(this)">intl</button>
+          <button class="ext-btn" data-ext="bcmath"    onclick="toggleExt(this)">bcmath</button>
+          <button class="ext-btn" data-ext="soap"      onclick="toggleExt(this)">soap</button>
+          <button class="ext-btn" data-ext="imagick"   onclick="toggleExt(this)">imagick</button>
+          <button class="ext-btn" data-ext="redis"     onclick="toggleExt(this)">redis</button>
+          <button class="ext-btn" data-ext="memcached" onclick="toggleExt(this)">memcached</button>
+          <button class="ext-btn" data-ext="opcache"   onclick="toggleExt(this)">opcache <span style="opacity:.5;font-size:10px">(built-in)</span></button>
+          <button class="ext-btn" data-ext="xdebug"    onclick="toggleExt(this)">xdebug</button>
+        </div>
+        <div id="ext-cmd-output"></div>
+      </div>
+      <div id="block-composer" class="pkg-block">
+<pre><span class="prompt">$ </span>curl -sS https://getcomposer.org/installer | php
+<span class="prompt">$ </span>sudo mv composer.phar /usr/local/bin/composer
+<span class="prompt">$ </span>composer --version</pre>
+      </div>
+    </div>
+
+    <!-- Python -->
+    <div class="pkg-group">
+      <div class="pkg-group-label">Python</div>
+      <div class="pkg-options">
+        <button class="pkg-btn" data-pkg="python3"      onclick="togglePkg(this)"><span class="check"></span> Python 3 + pip</button>
+        <button class="pkg-btn" data-pkg="python-venv"  onclick="togglePkg(this)"><span class="check"></span> venv</button>
+        <button class="pkg-btn" data-pkg="python-mysql" onclick="togglePkg(this)"><span class="check"></span> mysqlclient / PyMySQL</button>
+      </div>
+      <div id="block-python3" class="pkg-block">
+<pre><span class="prompt">$ </span>sudo apt update
+<span class="prompt">$ </span>sudo apt install -y python3 python3-pip python3-dev
+<span class="prompt">$ </span>python3 --version &amp;&amp; pip3 --version</pre>
+      </div>
+      <div id="block-python-venv" class="pkg-block">
+<pre><span class="prompt">$ </span>sudo apt install -y python3-venv
+<span class="prompt">$ </span>python3 -m venv myenv &amp;&amp; source myenv/bin/activate</pre>
+      </div>
+      <div id="block-python-mysql" class="pkg-block">
+<pre><span class="comment"># mysqlclient (C extension, fastest):</span>
+<span class="prompt">$ </span>sudo apt install -y libmysqlclient-dev &amp;&amp; pip3 install mysqlclient
+
+<span class="comment"># Or pure-Python PyMySQL (no C deps):</span>
+<span class="prompt">$ </span>pip3 install PyMySQL</pre>
+      </div>
+    </div>
+
+    <!-- Go -->
+    <div class="pkg-group">
+      <div class="pkg-group-label">Go</div>
+      <div class="pkg-options">
+        <button class="pkg-btn" data-pkg="golang" onclick="togglePkg(this)"><span class="check"></span> Go (latest stable)</button>
+      </div>
+      <div id="block-golang" class="pkg-block">
+<pre><span class="prompt">$ </span>GO_VER=$(curl -fsSL https://go.dev/VERSION?m=text | head -1)
+<span class="prompt">$ </span>curl -fsSL "https://go.dev/dl/${GO_VER}.linux-amd64.tar.gz" -o /tmp/go.tar.gz
+<span class="prompt">$ </span>sudo rm -rf /usr/local/go &amp;&amp; sudo tar -C /usr/local -xzf /tmp/go.tar.gz
+<span class="prompt">$ </span>echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.profile &amp;&amp; source ~/.profile
+<span class="prompt">$ </span>go version</pre>
+        <div class="callout" style="margin-top:10px;">Replace <code>linux-amd64</code> with <code>linux-arm64</code> on ARM servers.</div>
+      </div>
+    </div>
+
+    <!-- Node.js -->
+    <div class="pkg-group">
+      <div class="pkg-group-label">Node.js</div>
+      <div class="pkg-options">
+        <button class="pkg-btn" data-pkg="nodejs" onclick="togglePkg(this)"><span class="check"></span> Node.js + npm</button>
+        <button class="pkg-btn" data-pkg="pnpm"   onclick="togglePkg(this)"><span class="check"></span> pnpm</button>
+        <button class="pkg-btn" data-pkg="pm2"    onclick="togglePkg(this)"><span class="check"></span> PM2</button>
+      </div>
+      <div id="block-nodejs" class="pkg-block">
+        <div class="pkg-block-label">Version:</div>
+        <div class="pkg-version-row">
+          <button class="ver-btn active" data-ver="node" data-val="22" onclick="selectVer(this,'node')">22 LTS</button>
+          <button class="ver-btn" data-ver="node" data-val="20" onclick="selectVer(this,'node')">20 LTS</button>
+          <button class="ver-btn" data-ver="node" data-val="18" onclick="selectVer(this,'node')">18 LTS</button>
+        </div>
+        <div id="node-cmd-22" class="pkg-cmd-set visible">
+<pre><span class="prompt">$ </span>curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+<span class="prompt">$ </span>sudo apt install -y nodejs
+<span class="prompt">$ </span>node --version &amp;&amp; npm --version</pre>
+        </div>
+        <div id="node-cmd-20" class="pkg-cmd-set">
+<pre><span class="prompt">$ </span>curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+<span class="prompt">$ </span>sudo apt install -y nodejs</pre>
+        </div>
+        <div id="node-cmd-18" class="pkg-cmd-set">
+<pre><span class="prompt">$ </span>curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+<span class="prompt">$ </span>sudo apt install -y nodejs</pre>
+        </div>
+      </div>
+      <div id="block-pnpm" class="pkg-block"><pre><span class="prompt">$ </span>npm install -g pnpm</pre></div>
+      <div id="block-pm2"  class="pkg-block">
+<pre><span class="prompt">$ </span>npm install -g pm2
+<span class="prompt">$ </span>pm2 startup   <span class="comment"># follow the printed command to enable on boot</span></pre>
+      </div>
+    </div>
+
+    <!-- Databases & caches -->
+    <div class="pkg-group">
+      <div class="pkg-group-label">Databases &amp; caches</div>
+      <div class="pkg-options">
+        <button class="pkg-btn" data-pkg="redis"    onclick="togglePkg(this)"><span class="check"></span> Redis</button>
+        <button class="pkg-btn" data-pkg="postgres" onclick="togglePkg(this)"><span class="check"></span> PostgreSQL</button>
+        <button class="pkg-btn" data-pkg="sqlite"   onclick="togglePkg(this)"><span class="check"></span> SQLite 3</button>
+      </div>
+      <div id="block-redis" class="pkg-block">
+<pre><span class="prompt">$ </span>sudo apt install -y redis-server
+<span class="prompt">$ </span>sudo systemctl enable --now redis-server
+<span class="prompt">$ </span>redis-cli ping   <span class="comment"># should print PONG</span></pre>
+      </div>
+      <div id="block-postgres" class="pkg-block">
+<pre><span class="prompt">$ </span>sudo apt install -y postgresql postgresql-contrib
+<span class="prompt">$ </span>sudo systemctl enable --now postgresql
+<span class="prompt">$ </span>sudo -u postgres psql</pre>
+      </div>
+      <div id="block-sqlite" class="pkg-block">
+<pre><span class="prompt">$ </span>sudo apt install -y sqlite3 libsqlite3-dev</pre>
+      </div>
+    </div>
+
+    <!-- Utilities -->
+    <div class="pkg-group">
+      <div class="pkg-group-label">Utilities &amp; tools</div>
+      <div class="pkg-options">
+        <button class="pkg-btn" data-pkg="git"       onclick="togglePkg(this)"><span class="check"></span> Git</button>
+        <button class="pkg-btn" data-pkg="certbot"   onclick="togglePkg(this)"><span class="check"></span> Certbot</button>
+        <button class="pkg-btn" data-pkg="docker"    onclick="togglePkg(this)"><span class="check"></span> Docker</button>
+        <button class="pkg-btn" data-pkg="fail2ban"  onclick="togglePkg(this)"><span class="check"></span> fail2ban</button>
+        <button class="pkg-btn" data-pkg="htop"      onclick="togglePkg(this)"><span class="check"></span> htop / btop</button>
+      </div>
+      <div id="block-git" class="pkg-block">
+<pre><span class="prompt">$ </span>sudo apt install -y git
+<span class="prompt">$ </span>git config --global user.name "Your Name"
+<span class="prompt">$ </span>git config --global user.email "you@example.com"</pre>
+      </div>
+      <div id="block-certbot" class="pkg-block">
+        <div class="callout">If using Cloudflare (recommended), use a Cloudflare origin certificate instead — Certbot is for services <em>not</em> behind Cloudflare.</div>
+<pre><span class="prompt">$ </span>sudo apt install -y certbot python3-certbot-nginx
+<span class="prompt">$ </span>sudo certbot --nginx -d yourdomain.com</pre>
+      </div>
+      <div id="block-docker" class="pkg-block">
+<pre><span class="prompt">$ </span>sudo apt install -y ca-certificates curl
+<span class="prompt">$ </span>sudo install -m 0755 -d /etc/apt/keyrings
+<span class="prompt">$ </span>sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+<span class="prompt">$ </span>echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release &amp;&amp; echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list
+<span class="prompt">$ </span>sudo apt update &amp;&amp; sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+<span class="prompt">$ </span>sudo usermod -aG docker $USER &amp;&amp; newgrp docker</pre>
+      </div>
+      <div id="block-fail2ban" class="pkg-block">
+<pre><span class="prompt">$ </span>sudo apt install -y fail2ban
+<span class="prompt">$ </span>sudo systemctl enable --now fail2ban</pre>
+        <p style="font-size:13px;margin-top:8px;">Create <code>/etc/fail2ban/jail.local</code> to customise ban rules. The default config already protects SSH.</p>
+      </div>
+      <div id="block-htop" class="pkg-block">
+<pre><span class="prompt">$ </span>sudo apt install -y htop btop</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════
+       INSTALLATION
+  ═════════════════════════════════════════════════════════════ -->
+  <h2 id="install">Install FlashAccess</h2>
+  <p>
+    Once all prerequisites are in place (MySQL, nginx, UFW, domain + Cloudflare), run the
+    one-liner installer as root on your Ubuntu server:
+  </p>
 <pre><span class="prompt">$ </span>curl -fsSL https://raw.githubusercontent.com/KnAWLeDGE/flashaccess/main/install.sh | bash</pre>
   <p>The installer will:</p>
   <ol>
@@ -96,16 +879,16 @@
 
   <h3>Manual install</h3>
   <p>Download a binary directly from <a href="https://github.com/KnAWLeDGE/flashaccess/releases" target="_blank" rel="noopener">GitHub Releases</a>:</p>
-<pre><span class="prompt">$ </span>wget https://github.com/KnAWLeDGE/flashaccess/releases/latest/download/flashaccess-linux-amd64
-<span class="prompt">$ </span>chmod +x flashaccess-linux-amd64
-<span class="prompt">$ </span>sudo mv flashaccess-linux-amd64 /usr/local/bin/flashaccess</pre>
+<pre><span class="prompt">$ </span>VER=$(curl -fsSL https://api.github.com/repos/KnAWLeDGE/flashaccess/releases/latest | grep '"tag_name"' | head -1 | sed 's/.*"\(.*\)".*/\1/')
+<span class="prompt">$ </span>wget "https://github.com/KnAWLeDGE/flashaccess/releases/download/${VER}/flashaccess_${VER}_linux_amd64"
+<span class="prompt">$ </span>chmod +x "flashaccess_${VER}_linux_amd64"
+<span class="prompt">$ </span>sudo mv "flashaccess_${VER}_linux_amd64" /usr/local/bin/flashaccess</pre>
 
   <!-- ── Connect ────────────────────────────────────────────── -->
   <h2 id="connect">flashaccess connect</h2>
   <p>
-    Before FlashAccess can start a session it needs to know how to reach MySQL and needs an
-    admin password to protect the session-creation UI. Run the wizard as root (or as the
-    <code>flashaccess</code> system user with write access to <code>/var/lib/flashaccess/</code>):
+    After installation, run the configuration wizard as root to set up your MySQL connection
+    and admin password:
   </p>
 <pre><span class="prompt">$ </span>sudo flashaccess connect</pre>
   <p>The wizard prompts for:</p>
@@ -114,7 +897,7 @@
     <li><strong>MySQL port</strong> — default <code>3306</code></li>
     <li><strong>MySQL socket</strong> — leave blank for TCP; enter e.g. <code>/var/run/mysqld/mysqld.sock</code> for socket auth</li>
     <li><strong>MySQL user</strong> — typically <code>root</code></li>
-    <li><strong>MySQL password</strong> — empty if using socket auth</li>
+    <li><strong>MySQL password</strong> — leave blank if using socket auth</li>
     <li><strong>Dashboard listen address</strong> — default <code>127.0.0.1:7432</code></li>
     <li><strong>Admin password</strong> — minimum 8 characters; protects the session-creation form</li>
   </ul>
@@ -124,8 +907,8 @@
     <code>/var/lib/flashaccess/master.key</code> — back this up.
   </p>
   <div class="callout callout-warn">
-    <strong>Warning:</strong> If you lose <code>master.key</code>, the config cannot be decrypted.
-    Run <code>flashaccess connect</code> again to reconfigure.
+    <strong>Warning:</strong> If you lose <code>master.key</code> the config cannot be decrypted.
+    Run <code>flashaccess connect</code> again to reconfigure from scratch.
   </div>
 
   <!-- ── Serve ─────────────────────────────────────────────── -->
@@ -133,11 +916,17 @@
   <p>Start FlashAccess manually to verify it works:</p>
 <pre><span class="prompt">$ </span>sudo flashaccess serve
 FlashAccess dashboard listening on http://127.0.0.1:7432</pre>
-  <p>Then enable and start it as a service (see <a href="#systemd">systemd</a> section):</p>
+  <p>Then enable and start it as a managed service:</p>
 <pre><span class="prompt">$ </span>sudo systemctl enable --now flashaccess
 <span class="prompt">$ </span>sudo systemctl status flashaccess</pre>
+  <p>
+    With nginx configured (see <a href="#nginx">nginx + Cloudflare TLS</a>), your dashboard
+    will be accessible at <code>https://db.yourdomain.com</code>.
+  </p>
 
-  <!-- ── Sessions ──────────────────────────────────────────── -->
+  <!-- ════════════════════════════════════════════════════════
+       SESSIONS
+  ═════════════════════════════════════════════════════════════ -->
   <h2 id="sessions">Sessions</h2>
   <p>
     A session is a time-limited access grant. It consists of a cryptographic key, an allowed
@@ -148,13 +937,13 @@ FlashAccess dashboard listening on http://127.0.0.1:7432</pre>
   <ol>
     <li>Visit <code>https://db.yourdomain.com</code></li>
     <li>Enter your admin password</li>
-    <li>Fill in the allowed IP or CIDR (e.g. <code>203.0.113.42</code> or <code>10.0.0.0/24</code>), session duration, and any security options</li>
+    <li>Fill in the allowed IP or CIDR (e.g. <code>203.0.113.42</code> or <code>10.0.0.0/24</code>), session duration, and options</li>
     <li>Submit — the session key is shown <strong>once</strong>. Copy it now.</li>
     <li>You'll be redirected to the key gate. Paste the key to enter the dashboard.</li>
   </ol>
   <div class="callout">
-    <strong>Key shown once:</strong> The raw key is never stored. Only its Argon2id hash
-    is persisted. If you lose the key, end the session and create a new one.
+    <strong>Key shown once:</strong> The raw key is never stored — only its Argon2id hash is persisted.
+    If you lose the key, end the session and create a new one.
   </div>
 
   <h3>Session duration</h3>
@@ -177,10 +966,10 @@ FlashAccess dashboard listening on http://127.0.0.1:7432</pre>
   <p>The web dashboard is accessible only from the session's allowed IP. It provides:</p>
   <ul>
     <li><strong>Database list</strong> — all databases visible to the admin connection</li>
-    <li><strong>Table browser</strong> — engine, estimated row count, size; Browse and Structure links per table</li>
+    <li><strong>Table browser</strong> — engine, row count, size; Browse and Structure per table</li>
     <li><strong>Row browser</strong> — paginated table view with sortable columns (25 / 50 / 100 rows)</li>
-    <li><strong>Structure view</strong> — full column info (type, nullable, key, default, extra, comment) and indexes</li>
-    <li><strong>SQL editor</strong> — run arbitrary queries; <kbd>Ctrl+Enter</kbd> submits; results or affected-row count shown inline</li>
+    <li><strong>Structure view</strong> — column info (type, nullable, key, default, extra, comment) and indexes</li>
+    <li><strong>SQL editor</strong> — run arbitrary queries; <kbd>Ctrl+Enter</kbd> submits</li>
   </ul>
   <div class="callout callout-warn">
     <strong>Root access:</strong> The dashboard connects as your configured admin user (typically root).
@@ -190,25 +979,17 @@ FlashAccess dashboard listening on http://127.0.0.1:7432</pre>
   <!-- ── CLI activate ──────────────────────────────────────── -->
   <h2 id="cli-activate">CLI activate (Navicat / TablePlus / mysql)</h2>
   <p>
-    If you prefer to use a GUI client (Navicat, TablePlus, DBeaver) or the <code>mysql</code>
-    CLI directly, use the activate command. This verifies your session key and prints temporary
-    credentials for the session's MySQL user:
+    To use a GUI client or the <code>mysql</code> CLI, the activate command verifies your
+    session key and prints temporary credentials:
   </p>
 <pre><span class="prompt">$ </span>flashaccess session activate &lt;session-id&gt; &lt;key&gt; &lt;your-ip&gt;
 
-GRANTED — session a91f3c2d7b40, 29m44s remaining
-Connect with:
-  host:     127.0.0.1:3306
-  user:     tmp_a91f3c
-  password: Kx9mRp2LnQv4</pre>
-  <p>
-    Use those credentials in Navicat etc. The TCP port is protected by UFW — only the allowed IP
-    can connect.
-  </p>
-  <div class="callout">
-    <strong>Find your session ID:</strong> It's shown on the key-display page after session creation.
-    You can also see active sessions via the dashboard URL path (e.g. <code>/dashboard</code>).
-  </div>
+Key verified.
+  Host     : 127.0.0.1
+  Port     : 3306
+  User     : fa_a91f3c
+  Password : Kx9mRp2LnQv4
+  Expires  : 2026-06-21T14:30:00Z</pre>
 
   <!-- ── systemd ───────────────────────────────────────────── -->
   <h2 id="systemd">systemd service</h2>
@@ -217,80 +998,52 @@ Connect with:
     <li>Runs as the dedicated <code>flashaccess</code> system user</li>
     <li>Restarts automatically on failure (<code>RestartSec=5s</code>)</li>
     <li>Hardened: <code>NoNewPrivileges</code>, <code>ProtectSystem=strict</code>, <code>PrivateTmp</code></li>
-    <li>Listen address controlled by <code>FLASHACCESS_ADDR</code> env var (default <code>127.0.0.1:7432</code>)</li>
+    <li>Listen address controlled by <code>FLASHACCESS_ADDR</code> env var</li>
   </ul>
-<pre><span class="prompt">$ </span>sudo systemctl enable --now flashaccess   <span class="comment"># start + enable on boot</span>
+<pre><span class="prompt">$ </span>sudo systemctl enable --now flashaccess
 <span class="prompt">$ </span>sudo systemctl status flashaccess
-<span class="prompt">$ </span>sudo journalctl -u flashaccess -f         <span class="comment"># follow logs</span></pre>
+<span class="prompt">$ </span>sudo journalctl -u flashaccess -f   <span class="comment"># follow logs</span></pre>
 
   <!-- ── nginx ─────────────────────────────────────────────── -->
-  <h2 id="nginx">nginx + Cloudflare</h2>
+  <h2 id="nginx">nginx + Cloudflare TLS</h2>
   <p>
-    FlashAccess must run behind nginx with Cloudflare Full (Strict) TLS. This is required
-    because IP enforcement reads <code>CF-Connecting-IP</code> — without Cloudflare, any client
-    could spoof this header.
+    FlashAccess must run behind nginx with Cloudflare Full (Strict) TLS. IP enforcement reads
+    <code>CF-Connecting-IP</code> — without Cloudflare, any client could spoof this header.
+    See the <a href="#cloudflare-domain">Cloudflare + domain setup</a> section for the full walkthrough.
   </p>
-
-  <h3>1. Install your origin certificate</h3>
-  <p>In Cloudflare dashboard → SSL/TLS → Origin Server → Create Certificate. Save the certificate and key to your server:</p>
+<pre><span class="prompt">$ </span>sudo nano /etc/nginx/sites-available/flashaccess   <span class="comment"># replace YOURDOMAIN.COM</span>
+<span class="prompt">$ </span>sudo ln -s /etc/nginx/sites-available/flashaccess /etc/nginx/sites-enabled/
+<span class="prompt">$ </span>sudo nginx -t &amp;&amp; sudo systemctl reload nginx</pre>
+  <p>Origin certificate must be at:</p>
 <pre>/etc/ssl/cloudflare/origin.crt
 /etc/ssl/cloudflare/origin.key</pre>
-<pre><span class="prompt">$ </span>chmod 600 /etc/ssl/cloudflare/origin.key</pre>
 
-  <h3>2. Configure nginx</h3>
-  <p>The installer writes a sample config to <code>/etc/nginx/sites-available/flashaccess</code>. Edit it to set your domain:</p>
-<pre><span class="prompt">$ </span>sudo nano /etc/nginx/sites-available/flashaccess
-<span class="comment"># Replace YOURDOMAIN.COM with your actual domain</span></pre>
-  <p>Then enable it:</p>
-<pre><span class="prompt">$ </span>sudo ln -s /etc/nginx/sites-available/flashaccess /etc/nginx/sites-enabled/
-<span class="prompt">$ </span>sudo nginx -t           <span class="comment"># verify config</span>
-<span class="prompt">$ </span>sudo systemctl reload nginx</pre>
-
-  <h3>3. Set Cloudflare SSL mode</h3>
-  <p>In Cloudflare dashboard → SSL/TLS → Overview: set mode to <strong>Full (Strict)</strong>.</p>
-
-  <h3>4. Lock nginx to Cloudflare IPs (optional but recommended)</h3>
+  <!-- ── UFW rules ─────────────────────────────────────────── -->
+  <h2 id="firewall">UFW rules</h2>
   <p>
-    The sample nginx config includes a <code>geo</code> block that sets a variable based on
-    whether the request comes from a Cloudflare IP range. You can go further and add
-    <code>allow / deny</code> directives to the server block so nginx itself refuses non-Cloudflare
-    connections. Keep the IP list up to date from
-    <a href="https://www.cloudflare.com/ips-v4" target="_blank" rel="noopener">cloudflare.com/ips-v4</a>.
+    FlashAccess calls <code>ufw</code> to open and close MySQL TCP access (port 3306) for the
+    session's allowed IP. UFW must be installed and enabled — see <a href="#prereq-ufw">UFW setup</a>.
+    Do not manually open port 3306; FlashAccess manages it automatically.
   </p>
-
-  <!-- ── UFW ───────────────────────────────────────────────── -->
-  <h2 id="firewall">UFW / firewall</h2>
-  <p>
-    FlashAccess calls <code>ufw</code> to open and close MySQL TCP access (port 3306 by default)
-    for the session's allowed IP on session start and end. UFW must be installed and enabled.
-  </p>
-<pre><span class="prompt">$ </span>sudo ufw enable
-<span class="prompt">$ </span>sudo ufw status</pre>
-  <p>
-    To disable firewall management (e.g. on a dev machine without UFW):
-  </p>
-<pre>Environment=FLASHACCESS_NOFW=1   <span class="comment"># add to the systemd unit's [Service] section</span></pre>
-  <p>
-    The dashboard web port (7432) should <em>not</em> be open in UFW — it only needs to be
-    reachable from localhost, where nginx proxies to it.
-  </p>
+  <p>To disable firewall management (dev machine / no UFW):</p>
+<pre>Environment=FLASHACCESS_NOFW=1   <span class="comment"># add to the [Service] section of the systemd unit</span></pre>
 
   <!-- ── Security ──────────────────────────────────────────── -->
   <h2 id="security">Security model</h2>
   <ul>
-    <li><strong>AES-256-GCM</strong> — config file encrypted at rest with a per-machine master key</li>
-    <li><strong>Argon2id</strong> — session keys hashed before storage; the raw key is never persisted</li>
-    <li><strong>bcrypt</strong> — admin password hashed (cost 12); 500ms artificial delay on failed login</li>
-    <li><strong>IP enforcement</strong> — checked on every authenticated request at the application layer via <code>CF-Connecting-IP</code></li>
+    <li><strong>AES-256-GCM</strong> — config encrypted at rest with a per-machine master key</li>
+    <li><strong>Argon2id</strong> — session keys hashed before storage; raw key never persisted</li>
+    <li><strong>bcrypt</strong> — admin password hashed (cost 12); 500ms artificial delay on failure</li>
+    <li><strong>IP enforcement</strong> — checked on every request via <code>CF-Connecting-IP</code></li>
     <li><strong>Brute-force lockout</strong> — 5 failed key attempts locks the session for 5 minutes</li>
-    <li><strong>HttpOnly / Secure / SameSite=Strict cookies</strong> — web tokens issued as secure cookies</li>
-    <li><strong>In-memory token store</strong> — web tokens are not persisted; a server restart requires re-authentication</li>
-    <li><strong>Temporary MySQL users</strong> — named <code>tmp_&lt;hexid&gt;</code>; validated by a strict regex before any SQL; dropped on session end</li>
+    <li><strong>HttpOnly / Secure / SameSite=Strict cookies</strong> — web tokens are secure cookies</li>
+    <li><strong>In-memory token store</strong> — tokens not persisted; restart requires re-auth</li>
+    <li><strong>Temporary MySQL users</strong> — named <code>fa_&lt;hexid&gt;</code>; dropped on session end</li>
   </ul>
   <div class="callout callout-warn">
-    <strong>Threat model:</strong> FlashAccess is designed to protect against opportunistic access
-    and credential leakage — not against a sophisticated attacker who has already compromised the
-    server. The master key at <code>/var/lib/flashaccess/master.key</code> must be protected.
+    <strong>Threat model:</strong> FlashAccess protects against opportunistic access and credential
+    leakage — not against an attacker who has already compromised the server.
+    The master key at <code>/var/lib/flashaccess/master.key</code> must be protected.
   </div>
 
   <!-- ── Environment vars ──────────────────────────────────── -->
@@ -303,46 +1056,522 @@ Connect with:
   <!-- ── Build from source ─────────────────────────────────── -->
   <h2 id="build">Building from source</h2>
   <p>Requires Go 1.23+.</p>
-<pre><span class="prompt">$ </span>git clone https://github.com/KnAWLeDGE/flashaccess.git
-<span class="prompt">$ </span>cd flashaccess
-<span class="prompt">$ </span>make build          <span class="comment"># produces bin/flashaccess</span>
-<span class="prompt">$ </span>make install        <span class="comment"># copies to /usr/local/bin (needs sudo)</span></pre>
-  <p>Cross-compile for both Linux targets:</p>
-<pre><span class="prompt">$ </span>make release        <span class="comment"># produces dist/flashaccess_v*_linux_{amd64,arm64} + checksums.txt</span></pre>
+<pre><span class="prompt">$ </span>git clone https://github.com/KnAWLeDGE/flashaccess.git &amp;&amp; cd flashaccess
+<span class="prompt">$ </span>go build -o bin/flashaccess ./cmd/flashaccess
+<span class="prompt">$ </span>sudo cp bin/flashaccess /usr/local/bin/flashaccess</pre>
+  <p>Cross-compile Linux binaries:</p>
+<pre><span class="prompt">$ </span>GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=v1.0.0" -o dist/flashaccess_v1.0.0_linux_amd64 ./cmd/flashaccess
+<span class="prompt">$ </span>GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=v1.0.0" -o dist/flashaccess_v1.0.0_linux_arm64 ./cmd/flashaccess</pre>
 
   <!-- ── Releasing ─────────────────────────────────────────── -->
   <h2 id="release">Releasing a new version</h2>
   <ol>
     <li>Commit all changes and ensure the working tree is clean</li>
     <li>Tag the release: <code>git tag v1.0.0 &amp;&amp; git push origin v1.0.0</code></li>
-    <li>Run <code>make release</code> — outputs <code>dist/flashaccess_v1.0.0_linux_amd64</code>, <code>_arm64</code>, and <code>checksums.txt</code></li>
-    <li>Create a GitHub Release on the tag; upload the <code>dist/</code> files as release assets</li>
-    <li>The install script resolves the latest tag automatically via the GitHub API — no changes needed</li>
+    <li>Cross-compile both Linux binaries (see above)</li>
+    <li>Create a GitHub Release on the tag; upload the <code>dist/</code> binaries as release assets</li>
+    <li>The install script resolves the latest tag automatically via the GitHub API</li>
   </ol>
-  <p>Build flags inject the version at link time via <code>-X main.version=$(VERSION)</code> (see <code>makefile</code>).</p>
 
 </main>
 
 <script>
-// Highlight active sidebar link on scroll
+// ── Sidebar scroll-spy ─────────────────────────────────────────
 (function() {
   var links = document.querySelectorAll('.docs-sidebar-link');
   var sections = Array.from(links).map(function(l) {
-    var id = l.getAttribute('href').slice(1);
-    return document.getElementById(id);
+    return document.getElementById(l.getAttribute('href').slice(1));
   });
   function onScroll() {
-    var scrollY = window.scrollY + 80;
-    var active = 0;
-    sections.forEach(function(s, i) {
-      if (s && s.offsetTop <= scrollY) active = i;
-    });
+    var y = window.scrollY + 90, active = 0;
+    sections.forEach(function(s, i) { if (s && s.offsetTop <= y) active = i; });
     links.forEach(function(l) { l.classList.remove('active'); });
     links[active].classList.add('active');
   }
   window.addEventListener('scroll', onScroll, { passive: true });
   onScroll();
 })();
+
+// ── Detection script copy ──────────────────────────────────────
+function copyDetectScript(btn) {
+  var text = document.getElementById('detect-script-text').textContent;
+  navigator.clipboard.writeText(text).then(function() {
+    var orig = btn.textContent; btn.textContent = 'Copied!';
+    setTimeout(function() { btn.textContent = orig; }, 1500);
+  });
+}
+
+// ── Requirements detection ─────────────────────────────────────
+function processDetect() {
+  var raw = document.getElementById('detect-json').value.trim();
+  if (!raw) return;
+  var data;
+  try {
+    // Extract just the JSON object — ignore any stray chars before { or after }
+    var start = raw.indexOf('{');
+    var end   = raw.lastIndexOf('}');
+    if (start === -1 || end === -1) throw new Error('no braces');
+    var extracted = raw.slice(start, end + 1);
+    // Fix common terminal artifacts:
+    // 1. Literal newlines inside string values → space
+    // 2. Trailing commas before } or ]
+    var cleaned = extracted
+      .replace(/"([^"]*)"/g, function(m, s) { return '"' + s.replace(/[\r\n]+/g, ' ').trim() + '"'; })
+      .replace(/,(\s*[}\]])/g, '$1');
+    data = JSON.parse(cleaned);
+  } catch(e) {
+    alert('Could not parse the output. Make sure you copied the full JSON block (including the opening { and closing }).');
+    return;
+  }
+
+  var items = [
+    {
+      key: 'mysql', label: 'MySQL 8.0+',
+      ok: function(v) { return v && /Ver [89]/.test(v); },
+      okMsg: function(v) { return v; },
+      missMsg: 'Not found or version too old.',
+      action: '<a href="#prereq-mysql">Install MySQL →</a>'
+    },
+    {
+      key: 'nginx', label: 'nginx',
+      ok: function(v) { return !!v; },
+      okMsg: function(v) { return v; },
+      missMsg: 'Not installed.',
+      action: '<a href="#prereq-nginx">Install nginx →</a>'
+    },
+    {
+      key: 'ufw', label: 'UFW firewall',
+      ok: function(v) { return v === 'active'; },
+      warnIf: function(v) { return v === 'inactive'; },
+      okMsg: function() { return 'Active'; },
+      missMsg: 'Not installed.',
+      warnMsg: 'Installed but not enabled. Run <code>sudo ufw enable</code> (allow SSH first).',
+      action: '<a href="#prereq-ufw">UFW setup →</a>'
+    },
+    {
+      key: 'flashaccess', label: 'FlashAccess binary',
+      ok: function(v) { return !!v; },
+      okMsg: function(v) { return v; },
+      missMsg: 'Not installed.',
+      action: '<a href="#install">Install FlashAccess →</a>'
+    },
+    {
+      key: 'fa_config', label: 'FlashAccess config',
+      ok: function(v) { return v === 'present'; },
+      okMsg: function() { return 'Config file present at /var/lib/flashaccess/config.enc'; },
+      missMsg: 'Not configured yet.',
+      action: '<a href="#connect">Run flashaccess connect →</a>'
+    },
+    {
+      key: 'fa_service', label: 'FlashAccess service',
+      ok: function(v) { return v === 'active'; },
+      warnIf: function(v) { return v === 'inactive'; },
+      okMsg: function() { return 'Service is running'; },
+      warnMsg: 'Service installed but not running. Run <code>sudo systemctl start flashaccess</code>.',
+      missMsg: 'Service not found.',
+      action: '<a href="#systemd">systemd setup →</a>'
+    },
+    // Optional / informational
+    {
+      key: 'php', label: 'PHP', optional: true,
+      ok: function(v) { return !!v; },
+      okMsg: function(v) { return v.split('\n')[0]; },
+      missMsg: 'Not installed.',
+      action: '<a href="#optional-packages">Install PHP →</a>'
+    },
+    {
+      key: 'python3', label: 'Python 3', optional: true,
+      ok: function(v) { return !!v; },
+      okMsg: function(v) { return v; },
+      missMsg: 'Not installed.',
+      action: '<a href="#optional-packages">Install Python →</a>'
+    },
+    {
+      key: 'node', label: 'Node.js', optional: true,
+      ok: function(v) { return !!v; },
+      okMsg: function(v) { return v; },
+      missMsg: 'Not installed.',
+      action: '<a href="#optional-packages">Install Node.js →</a>'
+    },
+    {
+      key: 'go', label: 'Go', optional: true,
+      ok: function(v) { return !!v; },
+      okMsg: function(v) { return v; },
+      missMsg: 'Not installed.',
+      action: '<a href="#optional-packages">Install Go →</a>'
+    },
+    {
+      key: 'redis', label: 'Redis', optional: true,
+      ok: function(v) { return !!v; },
+      okMsg: function(v) { return v; },
+      missMsg: 'Not installed.',
+      action: '<a href="#optional-packages">Install Redis →</a>'
+    },
+    {
+      key: 'docker', label: 'Docker', optional: true,
+      ok: function(v) { return !!v; },
+      okMsg: function(v) { return v; },
+      missMsg: 'Not installed.',
+      action: '<a href="#optional-packages">Install Docker →</a>'
+    },
+  ];
+
+  var html = '';
+
+  // Group: required
+  html += '<div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--b400,#8a9ab0);margin-bottom:8px;">Required</div>';
+  items.filter(function(it) { return !it.optional; }).forEach(function(it) {
+    html += renderReqItem(it, data[it.key]);
+  });
+
+  html += '<div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--b400,#8a9ab0);margin:20px 0 8px;">Optional / detected</div>';
+  items.filter(function(it) { return it.optional; }).forEach(function(it) {
+    html += renderReqItem(it, data[it.key]);
+  });
+
+  var el = document.getElementById('req-status');
+  el.innerHTML = html;
+  el.style.display = 'flex';
+}
+
+function renderReqItem(it, val) {
+  var state, icon, detail, action = '';
+  var isNull = (val === null || val === undefined);
+
+  if (!isNull && it.ok(val)) {
+    state = 'ok'; icon = '✓';
+    detail = it.okMsg ? it.okMsg(val) : val;
+  } else if (!isNull && it.warnIf && it.warnIf(val)) {
+    state = 'warn'; icon = '!';
+    detail = it.warnMsg || val;
+    if (it.action) action = it.action;
+  } else {
+    state = 'miss'; icon = it.optional ? '·' : '✗';
+    detail = isNull ? 'Not installed.' : (it.missMsg || 'Not found.');
+    if (it.action && !it.optional) action = it.action;
+    else if (it.action && it.optional) action = it.action;
+    if (it.optional) state = 'warn';
+  }
+
+  return '<div class="req-item ' + state + '">'
+    + '<div class="req-icon">' + icon + '</div>'
+    + '<div>'
+    + '<div class="req-name">' + it.label + (it.optional ? ' <span class="optional-badge">optional</span>' : '') + '</div>'
+    + '<div class="req-detail">' + detail + '</div>'
+    + (action ? '<div class="req-action">' + action + '</div>' : '')
+    + '</div>'
+    + '</div>';
+}
+
+// ── Package picker ─────────────────────────────────────────────
+function togglePkg(btn) {
+  btn.classList.toggle('active');
+  var block = document.getElementById('block-' + btn.dataset.pkg);
+  if (block) block.classList.toggle('visible', btn.classList.contains('active'));
+}
+
+function selectVer(btn, group) {
+  btn.closest('.pkg-block').querySelectorAll('.ver-btn[data-ver="' + group + '"]')
+    .forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+  btn.closest('.pkg-block').querySelectorAll('.pkg-cmd-set[id^="' + group + '-cmd-"]')
+    .forEach(function(s) { s.classList.remove('visible'); });
+  var t = document.getElementById(group + '-cmd-' + btn.dataset.val);
+  if (t) t.classList.add('visible');
+}
+
+// ── PHP extension picker ───────────────────────────────────────
+// Maps extension name → apt package suffix (null = bundled with common, no separate install)
+var EXT_PKG_MAP = {
+  'mysqli':    'mysql',   // php{v}-mysql provides both mysqli and PDO MySQL
+  'pdo':       null,      // bundled with php{v}-common
+  'pdo-mysql': 'mysql',   // same package as mysqli
+  'pdo-pgsql': 'pgsql',   // php{v}-pgsql
+  'opcache':   null,      // bundled with php{v}-common
+};
+var selectedExts = new Set();
+function toggleExt(btn) {
+  btn.classList.toggle('active');
+  var ext = btn.dataset.ext;
+  if (btn.classList.contains('active')) selectedExts.add(ext); else selectedExts.delete(ext);
+  renderExtCmd();
+}
+function getPhpVer() {
+  var a = document.querySelector('.ver-btn.active[data-ver="php"]');
+  return a ? a.dataset.val : '8.5';
+}
+function renderExtCmd() {
+  var out = document.getElementById('ext-cmd-output');
+  if (selectedExts.size === 0) { out.innerHTML = ''; return; }
+  var ver = getPhpVer();
+  var bundled = [];
+  var pkgSet = new Set();
+  selectedExts.forEach(function(e) {
+    if (Object.prototype.hasOwnProperty.call(EXT_PKG_MAP, e)) {
+      if (EXT_PKG_MAP[e] === null) { bundled.push(e); }
+      else { pkgSet.add('php' + ver + '-' + EXT_PKG_MAP[e]); }
+    } else {
+      pkgSet.add('php' + ver + '-' + e);
+    }
+  });
+  var html = '';
+  if (pkgSet.size > 0) {
+    html += '<pre><span class="prompt">$ </span>sudo apt install -y ' + Array.from(pkgSet).join(' ') + '</pre>';
+  }
+  if (bundled.length > 0) {
+    html += '<p style="font-size:12px;color:#aaa;margin:6px 0 0;padding:0 4px;">ℹ <strong style="color:#ccc;">' + bundled.join(', ') + '</strong> ' + (bundled.length > 1 ? 'are' : 'is') + ' already bundled with php' + ver + '-common — no separate install needed.</p>';
+  }
+  out.innerHTML = html;
+  var pre = out.querySelector('pre');
+  if (pre) makeClickable(pre);
+}
+document.querySelectorAll('.ver-btn[data-ver="php"]').forEach(function(b) {
+  b.addEventListener('click', function() { setTimeout(renderExtCmd, 0); });
+});
+
+// ── Setup progress widget ──────────────────────────────────────
+var WIDGET_SECTIONS = [
+  { id: 'prereq-mysql',      label: 'MySQL server',           group: 'Prerequisites', detectKey: 'mysql',       detectOk: function(v){ return v && /Ver [89]/.test(v); } },
+  { id: 'prereq-nginx',      label: 'nginx',                  group: 'Prerequisites', detectKey: 'nginx',       detectOk: function(v){ return !!v; } },
+  { id: 'prereq-ufw',        label: 'UFW firewall',           group: 'Prerequisites', detectKey: 'ufw',         detectOk: function(v){ return v==='active'; }, detectWarn: function(v){ return v==='inactive'; } },
+  { id: 'cloudflare-domain', label: 'Cloudflare + domain',    group: 'Prerequisites' },
+  { id: 'install',           label: 'Install FlashAccess',    group: 'Installation',  detectKey: 'flashaccess', detectOk: function(v){ return !!v; } },
+  { id: 'connect',           label: 'flashaccess connect',    group: 'Installation',  detectKey: 'fa_config',   detectOk: function(v){ return v==='present'; } },
+  { id: 'serve',             label: 'Start the server',       group: 'Installation',  detectKey: 'fa_service',  detectOk: function(v){ return v==='active'; }, detectWarn: function(v){ return v==='inactive'; } },
+  { id: 'systemd',           label: 'systemd service',        group: 'Deployment' },
+  { id: 'nginx',             label: 'nginx + Cloudflare TLS', group: 'Deployment' },
+  { id: 'firewall',          label: 'UFW rules',              group: 'Deployment' },
+];
+
+var wDone    = new Set(JSON.parse(localStorage.getItem('fa_done') || '[]'));
+var wDetect  = JSON.parse(localStorage.getItem('fa_detect') || 'null');
+
+// ── Inject "Mark as done" buttons next to each tracked h2 ──────
+WIDGET_SECTIONS.forEach(function(sec) {
+  var h = document.getElementById(sec.id);
+  if (!h || h.tagName !== 'H2') return;
+  var btn = document.createElement('button');
+  btn.className = 'section-done-btn' + (wDone.has(sec.id) ? ' done' : '');
+  btn.textContent = wDone.has(sec.id) ? 'Done' : 'Mark as done';
+  btn.onclick = function(e) {
+    e.preventDefault();
+    if (wDone.has(sec.id)) { wDone.delete(sec.id); btn.classList.remove('done'); btn.textContent = 'Mark as done'; }
+    else { wDone.add(sec.id); btn.classList.add('done'); btn.textContent = 'Done'; }
+    localStorage.setItem('fa_done', JSON.stringify(Array.from(wDone)));
+    renderWidget();
+  };
+  h.appendChild(btn);
+});
+
+// ── Build widget DOM ───────────────────────────────────────────
+var widget = document.createElement('div');
+widget.className = 'setup-widget';
+widget.id = 'setup-widget';
+
+var widgetToggle = document.createElement('button');
+widgetToggle.className = 'widget-toggle';
+widgetToggle.textContent = '📋 Setup progress';
+widgetToggle.onclick = function() { widget.style.display = ''; widgetToggle.style.display = 'none'; localStorage.removeItem('fa_widget_closed'); };
+
+var wClosed = localStorage.getItem('fa_widget_closed');
+if (wClosed) widget.style.display = 'none';
+else widgetToggle.style.display = 'none';
+
+var savedPos = JSON.parse(localStorage.getItem('fa_widget_pos') || 'null');
+if (savedPos) { widget.style.top = savedPos.y + 'px'; widget.style.left = savedPos.x + 'px'; widget.style.right = 'auto'; }
+
+widget.innerHTML = '<div class="setup-widget-hd" id="widget-hd">'
+  + '<span class="setup-widget-title">Setup progress</span>'
+  + '<button class="widget-ctrl" id="widget-min" title="Minimise">−</button>'
+  + '<button class="widget-ctrl" id="widget-close" title="Close">✕</button>'
+  + '</div>'
+  + '<div class="setup-widget-body" id="widget-body"></div>';
+
+document.body.appendChild(widget);
+document.body.appendChild(widgetToggle);
+
+document.getElementById('widget-close').onclick = function() {
+  widget.style.display = 'none'; widgetToggle.style.display = '';
+  localStorage.setItem('fa_widget_closed', '1');
+};
+var bodyEl = document.getElementById('widget-body');
+var minimised = false;
+document.getElementById('widget-min').onclick = function() {
+  minimised = !minimised;
+  bodyEl.style.display = minimised ? 'none' : '';
+  this.textContent = minimised ? '+' : '−';
+};
+
+// ── Drag ────────────────────────────────────────────────────────
+var dragging = false, dragOX, dragOY;
+document.getElementById('widget-hd').addEventListener('mousedown', function(e) {
+  if (e.target.classList.contains('widget-ctrl')) return;
+  dragging = true; dragOX = e.clientX - widget.offsetLeft; dragOY = e.clientY - widget.offsetTop;
+});
+document.addEventListener('mousemove', function(e) {
+  if (!dragging) return;
+  var x = Math.max(0, Math.min(window.innerWidth  - widget.offsetWidth,  e.clientX - dragOX));
+  var y = Math.max(0, Math.min(window.innerHeight - widget.offsetHeight, e.clientY - dragOY));
+  widget.style.left = x + 'px'; widget.style.top = y + 'px'; widget.style.right = 'auto';
+  localStorage.setItem('fa_widget_pos', JSON.stringify({x: x, y: y}));
+});
+document.addEventListener('mouseup', function() { dragging = false; });
+
+// ── Render widget items ─────────────────────────────────────────
+function renderWidget() {
+  var groups = {};
+  WIDGET_SECTIONS.forEach(function(sec) {
+    if (!groups[sec.group]) groups[sec.group] = [];
+    groups[sec.group].push(sec);
+  });
+
+  var html = '';
+  Object.keys(groups).forEach(function(gname) {
+    html += '<div class="widget-group">' + gname + '</div>';
+    groups[gname].forEach(function(sec) {
+      var cls = 'widget-item', status = '';
+      var detectedVal = wDetect ? wDetect[sec.detectKey] : undefined;
+      var hasDetect = sec.detectKey && wDetect;
+
+      if (wDone.has(sec.id)) {
+        cls += ' w-done'; status = 'done';
+      } else if (hasDetect && detectedVal !== undefined && sec.detectOk && sec.detectOk(detectedVal)) {
+        cls += ' w-ok'; status = 'detected ✓';
+      } else if (hasDetect && detectedVal !== undefined && sec.detectWarn && sec.detectWarn(detectedVal)) {
+        cls += ' w-warn'; status = 'needs attention';
+      } else if (hasDetect && sec.detectKey) {
+        var missing = (detectedVal === null || detectedVal === undefined);
+        cls += missing ? ' w-miss' : ' w-warn'; status = missing ? 'not found' : 'check needed';
+      } else if (!wDetect && sec.detectKey) {
+        status = 'not scanned';
+      }
+
+      html += '<a class="' + cls + '" href="#' + sec.id + '">'
+        + '<span class="w-check"></span>'
+        + '<span class="w-label">' + sec.label + '</span>'
+        + (status ? '<span class="w-status">' + status + '</span>' : '')
+        + '</a>';
+    });
+  });
+  bodyEl.innerHTML = html;
+
+  // Add scan prompt if no detect data
+  if (!wDetect) {
+    bodyEl.innerHTML += '<div style="margin:10px 12px 4px;padding:8px 10px;background:rgba(255,255,255,.04);border-radius:4px;font-size:11px;color:#555;line-height:1.5;">'
+      + 'Run the <a href="#requirements" style="color:#6BAD6D;text-decoration:none;">detection script</a> to auto-check requirements.</div>';
+  }
+}
+
+// ── Hook into processDetect to update widget ────────────────────
+var _origProcessDetect = processDetect;
+processDetect = function() {
+  _origProcessDetect();
+  // Read back the parsed data by re-parsing
+  try {
+    var raw = document.getElementById('detect-json').value.trim();
+    var start = raw.indexOf('{'), end = raw.lastIndexOf('}');
+    if (start !== -1 && end !== -1) {
+      var cleaned = raw.slice(start, end + 1)
+        .replace(/"([^"]*)"/g, function(m,s){ return '"'+s.replace(/[\r\n]+/g,' ').trim()+'"'; })
+        .replace(/,(\s*[}\]])/g,'$1');
+      wDetect = JSON.parse(cleaned);
+      localStorage.setItem('fa_detect', JSON.stringify(wDetect));
+      renderWidget();
+    }
+  } catch(e) {}
+};
+
+renderWidget();
+
+// ── Copy-all button for config/non-command pre blocks ─────────
+document.querySelectorAll('pre').forEach(function(pre) {
+  if (pre.id === 'detect-script-text') return; // has its own copy button
+  var html = pre.innerHTML;
+  // Only add copy-all to blocks with no prompt spans (pure config/output)
+  if (html.indexOf('class="prompt"') !== -1) return;
+  if (html.indexOf('mysql&gt;') !== -1) return;
+  if (!pre.textContent.trim()) return;
+  var wrap = document.createElement('div');
+  wrap.className = 'pre-wrap';
+  pre.parentNode.insertBefore(wrap, pre);
+  wrap.appendChild(pre);
+  var btn = document.createElement('button');
+  btn.className = 'pre-copy-btn';
+  btn.textContent = 'copy';
+  btn.onclick = function() {
+    var text = pre.textContent.trim();
+    var finish = function() {
+      btn.textContent = '✓ copied'; btn.classList.add('copied');
+      setTimeout(function() { btn.textContent = 'copy'; btn.classList.remove('copied'); }, 1500);
+    };
+    if (navigator.clipboard) { navigator.clipboard.writeText(text).then(finish); }
+    else {
+      var ta = document.createElement('textarea'); ta.value = text;
+      ta.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(ta);
+      ta.select(); try { document.execCommand('copy'); } catch(e) {}
+      document.body.removeChild(ta); finish();
+    }
+  };
+  wrap.appendChild(btn);
+});
+
+// ── Clickable command lines ────────────────────────────────────
+function makeClickable(pre) {
+  var html = pre.innerHTML;
+  html = html.replace(/mysql&gt;(\s*)/g, '<span class="prompt">mysql&gt;$1</span>');
+  if (html.indexOf('class="prompt"') === -1) return;
+  pre.innerHTML = html.replace(
+    /(<span class="prompt">[\s\S]*?<\/span>)([^\n]*)/g,
+    function(match, prompt, rest) {
+      return '<span class="cmd-line" onclick="copyCmd(this)">' + prompt + rest + '</span>';
+    }
+  );
+}
+(function() {
+  var hintCount = 0;
+  document.querySelectorAll('pre:not(#detect-script-text)').forEach(function(pre) {
+    var html = pre.innerHTML;
+    html = html.replace(/mysql&gt;(\s*)/g, '<span class="prompt">mysql&gt;$1</span>');
+    if (html.indexOf('class="prompt"') === -1) return;
+    var newHtml = html.replace(
+      /(<span class="prompt">[\s\S]*?<\/span>)([^\n]*)/g,
+      function(match, prompt, rest) {
+        var showHint = hintCount < 3;
+        if (showHint) hintCount++;
+        var hintHtml = showHint ? '<span class="copy-hint">← click to copy</span>' : '';
+        var cls = showHint ? 'cmd-line has-hint' : 'cmd-line';
+        return '<span class="' + cls + '" onclick="copyCmd(this)">' + prompt + rest + hintHtml + '</span>';
+      }
+    );
+    pre.innerHTML = newHtml;
+  });
+})();
+
+function copyCmd(el) {
+  // Clone, strip the prompt span and hint span, read remaining text
+  var clone = el.cloneNode(true);
+  clone.querySelectorAll('.prompt, .copy-hint').forEach(function(s) { s.remove(); });
+  var cmd = clone.textContent.trim();
+
+  var finish = function() {
+    var hint = el.querySelector('.copy-hint');
+    el.classList.add('copied');
+    if (hint) { var orig = hint.textContent; hint.textContent = '✓ copied!'; setTimeout(function() { hint.textContent = orig; el.classList.remove('copied'); }, 1500); }
+    else { setTimeout(function() { el.classList.remove('copied'); }, 1500); }
+  };
+
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(cmd).then(finish);
+  } else {
+    // Fallback for older browsers
+    var ta = document.createElement('textarea');
+    ta.value = cmd; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    try { document.execCommand('copy'); } catch(e) {}
+    document.body.removeChild(ta);
+    finish();
+  }
+}
 </script>
 </body>
 </html>
