@@ -155,4 +155,135 @@ func cmdConnect() {
 		AdminPasswordHash: string(adminHash),
 		Defaults: config.SessionDefaults{
 			Duration:    "30m",
-	
+		},
+	}
+
+	store := config.NewStore(config.DefaultDir)
+
+	// Verify DB connection before saving.
+	db, err := mysql.Open(cfg.DB)
+	if err != nil {
+		fatal(fmt.Errorf("cannot connect to MySQL with the provided credentials: %w", err))
+	}
+	db.Close()
+
+	if err := store.Save(cfg); err != nil {
+		fatal(fmt.Errorf("save config: %w", err))
+	}
+
+	fmt.Println()
+	fmt.Println("Configuration saved to", config.DefaultDir)
+	fmt.Println("Run `flashaccess serve` to start the dashboard.")
+}
+
+// ── serve ─────────────────────────────────────────────────────
+func cmdServe(cfg *config.Config, mgr *session.Manager, db *mysql.Manager, store *config.Store) {
+	addr := cfg.ListenAddr
+	if a := os.Getenv("FLASHACCESS_ADDR"); a != "" {
+		addr = a
+	}
+	if addr == "" {
+		addr = "127.0.0.1:7432"
+	}
+	fmt.Println("FlashAccess dashboard listening on http://" + addr)
+	srv := web.New(cfg, mgr, db, store)
+	if err := srv.ListenAndServe(addr); err != nil {
+		fatal(err)
+	}
+}
+
+// ── session ───────────────────────────────────────────────────
+func cmdSession(mgr *session.Manager, cfg *config.Config, args []string) {
+	if len(args) == 0 {
+		fmt.Fprintln(os.Stderr, "usage: flashaccess session <new|activate|end> [args]")
+		os.Exit(1)
+	}
+	switch args[0] {
+	case "new":
+		dur := cfg.Defaults.Duration
+		if dur == "" {
+			dur = "30m"
+		}
+		d, err := time.ParseDuration(dur)
+		if err != nil {
+			fatal(fmt.Errorf("invalid default duration %q: %w", dur, err))
+		}
+		cidr := ""
+		if len(args) > 1 {
+			cidr = args[1]
+		}
+		sess, key, err := mgr.New(session.NewParams{Duration: d, AllowedCIDR: cidr})
+		if err != nil {
+			fatal(err)
+		}
+		fmt.Printf("Session ID : %s\n", sess.ID)
+		fmt.Printf("Key        : %s\n", key)
+		fmt.Printf("Expires    : %s\n", sess.ExpiresAt.Format(time.RFC3339))
+
+	case "activate":
+		// Verify a session key from a given IP and print Navicat-ready credentials.
+		if len(args) < 4 {
+			fatal(fmt.Errorf("usage: flashaccess session activate <id> <key> <ip>"))
+		}
+		id, key, ipStr := args[1], args[2], args[3]
+		clientIP := net.ParseIP(ipStr)
+		if clientIP == nil {
+			fatal(fmt.Errorf("invalid IP address %q", ipStr))
+		}
+		sess, err := mgr.VerifyAccess(id, key, clientIP)
+		if err != nil {
+			fatal(err)
+		}
+		fmt.Println("Key verified.")
+		fmt.Printf("  Host     : %s\n", cfg.DB.Host)
+		fmt.Printf("  Port     : %d\n", cfg.DB.Port)
+		fmt.Printf("  User     : fa_%s\n", id[:8])
+		fmt.Printf("  Password : %s\n", key)
+		fmt.Printf("  Expires  : %s\n", sess.ExpiresAt.Format(time.RFC3339))
+
+	case "end":
+		if len(args) < 2 {
+			fatal(fmt.Errorf("usage: flashaccess session end <id>"))
+		}
+		if err := mgr.End(args[1]); err != nil {
+			fatal(err)
+		}
+		fmt.Println("Session ended.")
+
+	default:
+		fatal(fmt.Errorf("unknown session subcommand: %s", args[0]))
+	}
+}
+
+// ── helpers ───────────────────────────────────────────────────
+
+func prompt(r *bufio.Reader, label, def string) string {
+	if def != "" {
+		fmt.Printf("%s [%s]: ", label, def)
+	} else {
+		fmt.Printf("%s: ", label)
+	}
+	line, _ := r.ReadString('\n')
+	line = strings.TrimRight(line, "\r\n")
+	if line == "" {
+		return def
+	}
+	return line
+}
+
+func fatal(err error) {
+	fmt.Fprintln(os.Stderr, "error:", err)
+	os.Exit(1)
+}
+
+func usage() {
+	fmt.Println(`FlashAccess — temporary IP-locked MySQL access
+
+Usage:
+  flashaccess connect              Interactive setup wizard
+  flashaccess serve                Start the web dashboard
+  flashaccess session new          Create a new session (inactive)
+  flashaccess session activate     Activate a session with a key and IP
+  flashaccess session end <id>     End a session immediately
+  flashaccess version              Print version`)
+}
