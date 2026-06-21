@@ -25,7 +25,6 @@ func (u *UFW) Allow(cidr string, port int, comment string) error {
 		"allow", "from", ufwHost(cidr),
 		"to", "any", "port", strconv.Itoa(port),
 		"proto", "tcp",
-		"comment", comment,
 	)
 }
 
