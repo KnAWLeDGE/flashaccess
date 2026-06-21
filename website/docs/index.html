@@ -910,6 +910,13 @@ deny all;</pre>
     <strong>Warning:</strong> If you lose <code>master.key</code> the config cannot be decrypted.
     Run <code>flashaccess connect</code> again to reconfigure from scratch.
   </div>
+  <p>
+    Because <code>flashaccess connect</code> is typically run as root, the config files may end up
+    owned by root instead of the <code>flashaccess</code> service user. If the service fails to
+    start with a <em>permission denied</em> error, fix ownership and restart:
+  </p>
+<pre><span class="prompt">$ </span>sudo chown -R flashaccess:flashaccess /var/lib/flashaccess
+<span class="prompt">$ </span>sudo systemctl restart flashaccess</pre>
 
   <!-- ── Serve ─────────────────────────────────────────────── -->
   <h2 id="serve">Starting the server</h2>
@@ -1007,16 +1014,104 @@ Key verified.
   <!-- ── nginx ─────────────────────────────────────────────── -->
   <h2 id="nginx">nginx + Cloudflare TLS</h2>
   <p>
-    FlashAccess must run behind nginx with Cloudflare Full (Strict) TLS. IP enforcement reads
-    <code>CF-Connecting-IP</code> — without Cloudflare, any client could spoof this header.
-    See the <a href="#cloudflare-domain">Cloudflare + domain setup</a> section for the full walkthrough.
+    FlashAccess must run behind nginx with Cloudflare <strong>Full (Strict)</strong> TLS. IP enforcement
+    reads <code>CF-Connecting-IP</code> — without Cloudflare proxying this header, any client could
+    spoof their IP. See <a href="#cloudflare-domain">Cloudflare + domain setup</a> for the certificate walkthrough.
   </p>
-<pre><span class="prompt">$ </span>sudo nano /etc/nginx/sites-available/flashaccess   <span class="comment"># replace YOURDOMAIN.COM</span>
-<span class="prompt">$ </span>sudo ln -s /etc/nginx/sites-available/flashaccess /etc/nginx/sites-enabled/
-<span class="prompt">$ </span>sudo nginx -t &amp;&amp; sudo systemctl reload nginx</pre>
-  <p>Origin certificate must be at:</p>
+  <p>
+    First, make sure your Cloudflare origin certificate files are in place (created during
+    <a href="#cloudflare-domain">Cloudflare setup</a>):
+  </p>
 <pre>/etc/ssl/cloudflare/origin.crt
 /etc/ssl/cloudflare/origin.key</pre>
+  <p>
+    Copy the config below into <code>/etc/nginx/sites-available/flashaccess</code>, replacing
+    <code>db.yourdomain.com</code> with your actual subdomain:
+  </p>
+<pre><span class="prompt">$ </span>sudo nano /etc/nginx/sites-available/flashaccess</pre>
+  <p>Paste this complete config (replace <code>db.yourdomain.com</code>):</p>
+<pre><span class="comment"># Validate that the request is actually coming through Cloudflare.</span>
+<span class="comment"># Without this, anyone who knows your server IP could spoof CF-Connecting-IP.</span>
+geo $cloudflare_ip {
+    default          0;
+    103.21.244.0/22  1;
+    103.22.200.0/22  1;
+    103.31.4.0/22    1;
+    104.16.0.0/13    1;
+    104.24.0.0/14    1;
+    108.162.192.0/18 1;
+    131.0.72.0/22    1;
+    141.101.64.0/18  1;
+    162.158.0.0/15   1;
+    172.64.0.0/13    1;
+    173.245.48.0/20  1;
+    188.114.96.0/20  1;
+    190.93.240.0/20  1;
+    197.234.240.0/22 1;
+    198.41.128.0/17  1;
+    2400:cb00::/32   1;
+    2606:4700::/32   1;
+    2803:f800::/32   1;
+    2405:b500::/32   1;
+    2405:8100::/32   1;
+    2a06:98c0::/29   1;
+    2c0f:f248::/32   1;
+}
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name db.yourdomain.com;
+
+    <span class="comment"># Cloudflare origin certificate (Full Strict mode)</span>
+    ssl_certificate     /etc/ssl/cloudflare/origin.crt;
+    ssl_certificate_key /etc/ssl/cloudflare/origin.key;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_ciphers         HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+
+    <span class="comment"># Security headers</span>
+    add_header X-Frame-Options        DENY;
+    add_header X-Content-Type-Options nosniff;
+    add_header Referrer-Policy        strict-origin-when-cross-origin;
+
+    <span class="comment"># Only pass CF-Connecting-IP when the request truly comes from Cloudflare.</span>
+    <span class="comment"># If not from Cloudflare, the header is blanked so FlashAccess rejects it.</span>
+    set $real_cf_ip "";
+    if ($cloudflare_ip = 1) {
+        set $real_cf_ip $http_cf_connecting_ip;
+    }
+
+    location / {
+        proxy_pass         http://127.0.0.1:7432;
+        proxy_http_version 1.1;
+        proxy_set_header   Host              $host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   CF-Connecting-IP  $real_cf_ip;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto https;
+        proxy_set_header   Upgrade           $http_upgrade;
+        proxy_set_header   Connection        "upgrade";
+        proxy_read_timeout 60s;
+    }
+}
+
+<span class="comment"># Redirect plain HTTP to HTTPS</span>
+server {
+    listen 80;
+    listen [::]:80;
+    server_name db.yourdomain.com;
+    return 301 https://$host$request_uri;
+}</pre>
+  <p>Then enable the site and reload nginx:</p>
+<pre><span class="prompt">$ </span>sudo ln -s /etc/nginx/sites-available/flashaccess /etc/nginx/sites-enabled/
+<span class="prompt">$ </span>sudo nginx -t
+<span class="prompt">$ </span>sudo systemctl reload nginx</pre>
+  <div class="callout">
+    Set Cloudflare SSL/TLS mode to <strong>Full (Strict)</strong> in your Cloudflare dashboard
+    (SSL/TLS → Overview). <em>Flexible</em> or <em>Full</em> without Strict will allow
+    Cloudflare to accept invalid certificates and weakens the security chain.
+  </div>
 
   <!-- ── UFW rules ─────────────────────────────────────────── -->
   <h2 id="firewall">UFW rules</h2>
@@ -1060,14 +1155,15 @@ Key verified.
 <span class="prompt">$ </span>go build -o bin/flashaccess ./cmd/flashaccess
 <span class="prompt">$ </span>sudo cp bin/flashaccess /usr/local/bin/flashaccess</pre>
   <p>Cross-compile Linux binaries:</p>
-<pre><span class="prompt">$ </span>GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=v1.0.0" -o dist/flashaccess_v1.0.0_linux_amd64 ./cmd/flashaccess
-<span class="prompt">$ </span>GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=v1.0.0" -o dist/flashaccess_v1.0.0_linux_arm64 ./cmd/flashaccess</pre>
+<pre><span class="prompt">$ </span>VER=v1.0.1   <span class="comment"># replace with the version you are building</span>
+<span class="prompt">$ </span>GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=${VER}" -o dist/flashaccess_${VER}_linux_amd64 ./cmd/flashaccess
+<span class="prompt">$ </span>GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=${VER}" -o dist/flashaccess_${VER}_linux_arm64 ./cmd/flashaccess</pre>
 
   <!-- ── Releasing ─────────────────────────────────────────── -->
   <h2 id="release">Releasing a new version</h2>
   <ol>
     <li>Commit all changes and ensure the working tree is clean</li>
-    <li>Tag the release: <code>git tag v1.0.0 &amp;&amp; git push origin v1.0.0</code></li>
+    <li>Tag the release: <code>git tag v1.0.1 &amp;&amp; git push origin v1.0.1</code> (increment as needed)</li>
     <li>Cross-compile both Linux binaries (see above)</li>
     <li>Create a GitHub Release on the tag; upload the <code>dist/</code> binaries as release assets</li>
     <li>The install script resolves the latest tag automatically via the GitHub API</li>
