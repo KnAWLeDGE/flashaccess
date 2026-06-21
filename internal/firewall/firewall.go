@@ -3,6 +3,7 @@ package firewall
 import (
 	"bytes"
 	"fmt"
+	"net"
 	"os/exec"
 	"strconv"
 )
@@ -21,7 +22,7 @@ func NewUFW() *UFW { return &UFW{Bin: "ufw"} }
 
 func (u *UFW) Allow(cidr string, port int, comment string) error {
 	return run(u.bin(),
-		"allow", "from", cidr,
+		"allow", "from", ufwHost(cidr),
 		"to", "any", "port", strconv.Itoa(port),
 		"proto", "tcp",
 		"comment", comment,
@@ -31,7 +32,7 @@ func (u *UFW) Allow(cidr string, port int, comment string) error {
 func (u *UFW) Deny(cidr string, port int) error {
 	// ufw matches the rule for deletion by its spec (comment is ignored).
 	return run(u.bin(),
-		"delete", "allow", "from", cidr,
+		"delete", "allow", "from", ufwHost(cidr),
 		"to", "any", "port", strconv.Itoa(port),
 		"proto", "tcp",
 	)
@@ -42,6 +43,23 @@ func (u *UFW) bin() string {
 		return "ufw"
 	}
 	return u.Bin
+}
+
+// ufwHost converts a CIDR into the form UFW accepts in "from" rules.
+// UFW rejects /128 for IPv6 single hosts and is picky about /32 too,
+// so we strip the prefix for exact-host CIDRs.
+func ufwHost(cidr string) string {
+	ip, ipnet, err := net.ParseCIDR(cidr)
+	if err != nil {
+		// Not a CIDR — pass through as-is (bare IP or hostname).
+		return cidr
+	}
+	ones, bits := ipnet.Mask.Size()
+	if ones == bits {
+		// /32 or /128 — single host; UFW wants just the IP.
+		return ip.String()
+	}
+	return cidr
 }
 
 func run(bin string, args ...string) error {
