@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../assets/css/site.css">
+  <link rel="stylesheet" href="../assets/css/site.css?v=2">
   <style>
     /* ── Detection widget ──────────────────────────────────── */
     .detect-box {
@@ -350,7 +350,6 @@
     <a href="#security"          class="docs-sidebar-link">Security model</a>
     <a href="#env"               class="docs-sidebar-link">Environment vars</a>
     <a href="#build"             class="docs-sidebar-link">Building from source</a>
-    <a href="#release"           class="docs-sidebar-link">Releasing</a>
   </div>
 </aside>
 
@@ -885,7 +884,7 @@ deny all;</pre>
 <span class="prompt">$ </span>chmod +x "flashaccess_${VER}_linux_amd64"
 <span class="prompt">$ </span>sudo mv "flashaccess_${VER}_linux_amd64" /usr/local/bin/flashaccess</pre>
 
-  <h3 id="update">Updating to a newer version</h3>
+  <h2 id="update">Updating to a newer version</h2>
   <p>
     Re-running the installer is safe — it replaces only the binary and the systemd unit.
     Your config, master key, and session state in <code>/var/lib/flashaccess/</code> are never touched.
@@ -1131,11 +1130,29 @@ server {
   <!-- ── UFW rules ─────────────────────────────────────────── -->
   <h2 id="firewall">UFW rules</h2>
   <p>
-    FlashAccess calls <code>ufw</code> to open and close MySQL TCP access (port 3306) for the
-    session's allowed IP. UFW must be installed and enabled — see <a href="#prereq-ufw">UFW setup</a>.
-    Do not manually open port 3306; FlashAccess manages it automatically.
+    FlashAccess calls <code>ufw</code> (via <code>sudo</code>) to open and close MySQL TCP access
+    (port 3306) for the session's allowed IP. UFW must be installed and enabled —
+    see <a href="#prereq-ufw">UFW setup</a>. Do not manually open port 3306; FlashAccess manages it automatically.
   </p>
-  <p>To disable firewall management (dev machine / no UFW):</p>
+  <p>
+    The installer creates a sudoers rule granting the <code>flashaccess</code> service user
+    passwordless access to <code>ufw</code>. You can verify it is in place with:
+  </p>
+<pre><span class="prompt">$ </span>cat /etc/sudoers.d/flashaccess-ufw
+flashaccess ALL=(root) NOPASSWD: /usr/sbin/ufw</pre>
+  <p>
+    If sessions fail with <em>"You need to be root to run this script"</em>, the sudoers rule is
+    missing or the systemd unit has hardening options that block <code>sudo</code>
+    (<code>NoNewPrivileges=true</code> or an empty <code>CapabilityBoundingSet</code>).
+    Re-running the installer fixes both. To fix manually:
+  </p>
+<pre><span class="prompt">$ </span>echo 'flashaccess ALL=(root) NOPASSWD: /usr/sbin/ufw' | sudo tee /etc/sudoers.d/flashaccess-ufw
+<span class="prompt">$ </span>sudo chmod 440 /etc/sudoers.d/flashaccess-ufw
+<span class="prompt">$ </span>sudo sed -i '/NoNewPrivileges/d' /etc/systemd/system/flashaccess.service
+<span class="prompt">$ </span>sudo sed -i '/CapabilityBoundingSet/d' /etc/systemd/system/flashaccess.service
+<span class="prompt">$ </span>sudo sed -i '/ProtectSystem/d' /etc/systemd/system/flashaccess.service
+<span class="prompt">$ </span>sudo systemctl daemon-reload &amp;&amp; sudo systemctl restart flashaccess</pre>
+  <p>To disable firewall management entirely (dev machine / no UFW):</p>
 <pre>Environment=FLASHACCESS_NOFW=1   <span class="comment"># add to the [Service] section of the systemd unit</span></pre>
 
   <!-- ── Security ──────────────────────────────────────────── -->
@@ -1174,15 +1191,6 @@ server {
 <span class="prompt">$ </span>GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=${VER}" -o dist/flashaccess_${VER}_linux_amd64 ./cmd/flashaccess
 <span class="prompt">$ </span>GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=${VER}" -o dist/flashaccess_${VER}_linux_arm64 ./cmd/flashaccess</pre>
 
-  <!-- ── Releasing ─────────────────────────────────────────── -->
-  <h2 id="release">Releasing a new version</h2>
-  <ol>
-    <li>Commit all changes and ensure the working tree is clean</li>
-    <li>Tag the release: <code>git tag v1.0.1 &amp;&amp; git push origin v1.0.1</code> (increment as needed)</li>
-    <li>Cross-compile both Linux binaries (see above)</li>
-    <li>Create a GitHub Release on the tag; upload the <code>dist/</code> binaries as release assets</li>
-    <li>The install script resolves the latest tag automatically via the GitHub API</li>
-  </ol>
 
 </main>
 

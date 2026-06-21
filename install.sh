@@ -101,11 +101,8 @@ RestartSec=5s
 Environment=FLASHACCESS_ADDR=${ADDR}
 StateDirectory=flashaccess
 ReadWritePaths=${DATA_DIR}
-NoNewPrivileges=true
 PrivateTmp=true
-ProtectSystem=strict
 ProtectHome=true
-CapabilityBoundingSet=
 
 [Install]
 WantedBy=multi-user.target
