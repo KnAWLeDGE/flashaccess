@@ -82,18 +82,18 @@
 
     <div class="sidebar-divider"></div>
     <div class="sidebar-section-label">Tools</div>
-    <a href="/stats" class="sidebar-tool-link {{if eq .Section \"stats\"}}active{{end}}">
+    <a href="/stats" class="sidebar-tool-link {{if eq .Section "stats"}}active{{end}}">
       <span class="tool-icon">▤</span> Server Stats
     </a>
     {{if eq .Mode "unrestricted"}}
-    <a href="/users" class="sidebar-tool-link {{if eq .Section \"users\"}}active{{end}}">
+    <a href="/users" class="sidebar-tool-link {{if eq .Section "users"}}active{{end}}">
       <span class="tool-icon">♟</span> MySQL Users
     </a>
     {{end}}
-    <a href="/playground" class="sidebar-tool-link {{if eq .Section \"playground\"}}active{{end}}">
+    <a href="/playground" class="sidebar-tool-link {{if eq .Section "playground"}}active{{end}}">
       <span class="tool-icon">▶</span> Playground{{if .PlaygroundDB}}<span class="pg-active-dot"></span>{{end}}
     </a>
-    <a href="/ai/settings" class="sidebar-tool-link {{if eq .Section \"ai-settings\"}}active{{end}}">
+    <a href="/ai/settings" class="sidebar-tool-link {{if eq .Section "ai-settings"}}active{{end}}">
       <span class="tool-icon">✦</span> AI Settings
     </a>
 
