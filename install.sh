@@ -130,7 +130,16 @@ if command -v nginx &>/dev/null; then
     fi
 fi
 
-# ── Done ───────────────────────────────────────────────────────
+# ── Restart service if already running (update path) ──────────
+if systemctl is-active --quiet flashaccess; then
+    info "Existing service detected — restarting to apply update…"
+    systemctl restart flashaccess
+    info "Service restarted. Run 'flashaccess version' to confirm."
+    echo
+    exit 0
+fi
+
+# ── Done (fresh install) ────────────────────────────────────────
 echo
 info "Installation complete."
 echo -e "${G}Next steps:${N}"

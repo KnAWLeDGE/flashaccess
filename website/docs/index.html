@@ -329,6 +329,7 @@
   <div class="docs-sidebar-section">
     <div class="docs-sidebar-label">Installation</div>
     <a href="#install"           class="docs-sidebar-link">Install FlashAccess</a>
+    <a href="#update"            class="docs-sidebar-link">Updating</a>
     <a href="#connect"           class="docs-sidebar-link">flashaccess connect</a>
     <a href="#serve"             class="docs-sidebar-link">Starting the server</a>
   </div>
@@ -883,6 +884,20 @@ deny all;</pre>
 <span class="prompt">$ </span>wget "https://github.com/KnAWLeDGE/flashaccess/releases/download/${VER}/flashaccess_${VER}_linux_amd64"
 <span class="prompt">$ </span>chmod +x "flashaccess_${VER}_linux_amd64"
 <span class="prompt">$ </span>sudo mv "flashaccess_${VER}_linux_amd64" /usr/local/bin/flashaccess</pre>
+
+  <h3 id="update">Updating to a newer version</h3>
+  <p>
+    Re-running the installer is safe — it replaces only the binary and the systemd unit.
+    Your config, master key, and session state in <code>/var/lib/flashaccess/</code> are never touched.
+  </p>
+<pre><span class="prompt">$ </span>curl -fsSL https://raw.githubusercontent.com/KnAWLeDGE/flashaccess/main/install.sh | sudo bash</pre>
+  <p>The service restarts automatically at the end. Verify the new version is running:</p>
+<pre><span class="prompt">$ </span>flashaccess version
+<span class="prompt">$ </span>sudo systemctl status flashaccess</pre>
+  <div class="callout">
+    Your existing sessions will be terminated on restart as tokens are held in memory.
+    Active MySQL users and firewall rules created by those sessions are cleaned up automatically.
+  </div>
 
   <!-- ── Connect ────────────────────────────────────────────── -->
   <h2 id="connect">flashaccess connect</h2>
