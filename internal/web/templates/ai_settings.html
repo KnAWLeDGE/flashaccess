@@ -32,6 +32,12 @@
       </select>
       <div class="field-hint">All models are accessed via OpenRouter. Pricing varies by model.</div>
     </div>
+
+    <div class="field">
+  <label class="field-label" for="ai-custom-model">Custom model override <span style="font-weight:400;text-transform:none;color:var(--b500)">(optional)</span></label>
+  <input type="text" id="ai-custom-model" class="field-input mono" placeholder="e.g. google/gemini-pro" autocomplete="off">
+  <div class="field-hint">Overrides the dropdown. Use any <a href="https://openrouter.ai/models" target="_blank" rel="noopener">OpenRouter model ID</a>.</div>
+</div>
   </div>
 </div>
 
@@ -126,6 +132,7 @@
 
   document.getElementById('ai-api-key').value = s.apiKey || '';
   document.getElementById('ai-model').value   = s.model  || 'openai/gpt-4o-mini';
+  document.getElementById('ai-custom-model').value = s.customModel || '';
 
   // Restore confirm-mode radios
   var modeRadios = document.querySelectorAll('input[name="ai-confirm-mode"]');
@@ -152,6 +159,7 @@ function aiSettingsSave() {
   var s = {
     apiKey:       document.getElementById('ai-api-key').value.trim(),
     model:        document.getElementById('ai-model').value,
+    customModel:  document.getElementById('ai-custom-model').value.trim(),
     confirmMode:  mode ? mode.value : 'dialog',
     passphrase:   document.getElementById('ai-passphrase').value,
     confirmWhen:  when ? when.value : 'all',
@@ -167,6 +175,7 @@ function aiSettingsClear() {
   localStorage.removeItem('fa_ai_settings');
   document.getElementById('ai-api-key').value = '';
   document.getElementById('ai-model').value   = 'openai/gpt-4o-mini';
+  document.getElementById('ai-custom-model').value = '';
   var defaultMode = document.querySelector('input[name="ai-confirm-mode"][value="dialog"]');
   if (defaultMode) defaultMode.checked = true;
   var defaultWhen = document.querySelector('input[name="ai-confirm-when"][value="all"]');

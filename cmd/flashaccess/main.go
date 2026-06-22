@@ -88,7 +88,7 @@ func main() {
 
 	switch os.Args[1] {
 	case "serve":
-		cmdServe(cfg, mgr, db, store)
+		cmdServe(cfg, mgr, db, store, fw)
 	case "session":
 		cmdSession(mgr, cfg, os.Args[2:])
 	default:
@@ -244,7 +244,7 @@ func cmdMode(args []string) {
 }
 
 // ── serve ─────────────────────────────────────────────────────
-func cmdServe(cfg *config.Config, mgr *session.Manager, db *mysql.Manager, store *config.Store) {
+func cmdServe(cfg *config.Config, mgr *session.Manager, db *mysql.Manager, store *config.Store, fw firewall.Manager) {
 	addr := cfg.ListenAddr
 	if a := os.Getenv("FLASHACCESS_ADDR"); a != "" {
 		addr = a
@@ -253,7 +253,7 @@ func cmdServe(cfg *config.Config, mgr *session.Manager, db *mysql.Manager, store
 		addr = "127.0.0.1:7432"
 	}
 	fmt.Printf("FlashAccess dashboard listening on http://%s (mode: %s)\n", addr, cfg.EffectiveMode())
-	srv := web.New(cfg, mgr, db, store)
+	srv := web.New(cfg, mgr, db, store, fw)
 	if err := srv.ListenAndServe(addr); err != nil {
 		fatal(err)
 	}

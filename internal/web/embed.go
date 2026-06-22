@@ -2,11 +2,14 @@ package web
 
 import (
 	"embed"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"io/fs"
 	"strings"
 	"time"
+
+	"github.com/KnAWLeDGE/flashaccess/internal/mysql"
 )
 
 //go:embed templates static
@@ -46,6 +49,28 @@ var templateFuncs = template.FuncMap{
 	"trimSpace": strings.TrimSpace,
 	"lower":     strings.ToLower,
 	"hasPfx":    strings.HasPrefix,
+	"jsonRow": func(row []string, cols []string) template.JS {
+		m := make(map[string]string, len(row))
+		for i, v := range row {
+			if i < len(cols) {
+				m[cols[i]] = v
+			}
+		}
+		b, _ := json.Marshal(m)
+		return template.JS(b)
+	},
+	"jsonColumns": func(cols []mysql.ColumnInfo) template.JS {
+		type colJS struct {
+			Field string `json:"field"`
+			Type  string `json:"type"`
+		}
+		out := make([]colJS, len(cols))
+		for i, c := range cols {
+			out[i] = colJS{Field: c.Field, Type: c.Type}
+		}
+		b, _ := json.Marshal(out)
+		return template.JS(b)
+	},
 }
 
 func parseTemplates() (map[string]*template.Template, error) {
@@ -65,6 +90,7 @@ func parseTemplates() (map[string]*template.Template, error) {
 		"users":       {"templates/dash_layout.html", "templates/users.html"},
 		"ai_settings": {"templates/dash_layout.html", "templates/ai_settings.html"},
 		"playground":  {"templates/dash_layout.html", "templates/playground.html"},
+		"permanent":   {"templates/dash_layout.html", "templates/permanent.html"},
 	}
 
 	out := make(map[string]*template.Template, len(pages))

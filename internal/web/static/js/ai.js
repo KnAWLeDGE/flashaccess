@@ -115,7 +115,7 @@ var FAI = (function () {
     if (!settings.apiKey) {
       return Promise.reject(new Error('No OpenRouter API key set. Configure it in AI Settings.'));
     }
-    var model = (opts && opts.model) || settings.model;
+    var model = (opts && opts.model) || ((settings.customModel && settings.customModel.trim()) ? settings.customModel.trim() : (settings.model || 'openai/gpt-4o-mini'));
 
     return fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',

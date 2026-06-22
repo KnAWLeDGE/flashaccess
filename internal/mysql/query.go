@@ -448,3 +448,54 @@ func dmlToSampleSQL(q string) string {
 	}
 	return ""
 }
+
+// InsertRow inserts a single row into db.table.
+func (m *Manager) InsertRow(ctx context.Context, db, table string, cols []string, vals []string) error {
+	if len(cols) == 0 {
+		return fmt.Errorf("no columns provided")
+	}
+	escaped := make([]string, len(cols))
+	placeholders := make([]string, len(cols))
+	args := make([]interface{}, len(vals))
+	for i, c := range cols {
+		escaped[i] = "`" + escIdent(c) + "`"
+		placeholders[i] = "?"
+		if i < len(vals) {
+			args[i] = vals[i]
+		}
+	}
+	q := fmt.Sprintf("INSERT INTO `%s`.`%s` (%s) VALUES (%s)",
+		escIdent(db), escIdent(table),
+		strings.Join(escaped, ", "), strings.Join(placeholders, ", "))
+	_, err := m.db.ExecContext(ctx, q, args...)
+	return err
+}
+
+// UpdateRow updates a row identified by pkCol=pkVal.
+func (m *Manager) UpdateRow(ctx context.Context, db, table, pkCol, pkVal string, cols []string, vals []string) error {
+	if len(cols) == 0 {
+		return fmt.Errorf("no columns to update")
+	}
+	sets := make([]string, len(cols))
+	args := make([]interface{}, len(vals)+1)
+	for i, c := range cols {
+		sets[i] = fmt.Sprintf("`%s` = ?", escIdent(c))
+		if i < len(vals) {
+			args[i] = vals[i]
+		}
+	}
+	args[len(vals)] = pkVal
+	q := fmt.Sprintf("UPDATE `%s`.`%s` SET %s WHERE `%s` = ?",
+		escIdent(db), escIdent(table),
+		strings.Join(sets, ", "), escIdent(pkCol))
+	_, err := m.db.ExecContext(ctx, q, args...)
+	return err
+}
+
+// DeleteRow deletes a row by PK.
+func (m *Manager) DeleteRow(ctx context.Context, db, table, pkCol, pkVal string) error {
+	q := fmt.Sprintf("DELETE FROM `%s`.`%s` WHERE `%s` = ? LIMIT 1",
+		escIdent(db), escIdent(table), escIdent(pkCol))
+	_, err := m.db.ExecContext(ctx, q, pkVal)
+	return err
+}

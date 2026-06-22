@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"path/filepath"
 
 	"github.com/KnAWLeDGE/flashaccess/internal/config"
+	"github.com/KnAWLeDGE/flashaccess/internal/firewall"
 	"github.com/KnAWLeDGE/flashaccess/internal/mysql"
 	"github.com/KnAWLeDGE/flashaccess/internal/session"
 )
@@ -15,12 +17,19 @@ type Server struct {
 	store *config.Store
 	mgr   *session.Manager
 	db    *mysql.Manager
+	fw    firewall.Manager
+	ps    *permanentStore
 	auth  *authStore
 	pages map[string]*template.Template
 }
 
-func New(cfg *config.Config, mgr *session.Manager, db *mysql.Manager, store *config.Store) *Server {
-	s := &Server{cfg: cfg, store: store, mgr: mgr, db: db, auth: newAuthStore()}
+func New(cfg *config.Config, mgr *session.Manager, db *mysql.Manager, store *config.Store, fw firewall.Manager) *Server {
+	psPath := filepath.Join(config.DefaultDir, "permanent_grants.json")
+	s := &Server{
+		cfg: cfg, store: store, mgr: mgr, db: db, fw: fw,
+		auth: newAuthStore(),
+		ps:   newPermanentStore(psPath),
+	}
 	var err error
 	s.pages, err = parseTemplates()
 	if err != nil {
@@ -81,6 +90,16 @@ func (s *Server) Handler() http.Handler {
 
 	// API
 	mux.Handle("POST /api/session/end", s.requireAuth(http.HandlerFunc(s.handleSessionEnd)))
+
+	// Permanent access
+	mux.Handle("GET /permanent", s.requireAuth(http.HandlerFunc(s.handlePermanentAccess)))
+	mux.Handle("POST /permanent/grant", s.requireAuth(http.HandlerFunc(s.handlePermanentGrant)))
+	mux.Handle("POST /permanent/revoke", s.requireAuth(http.HandlerFunc(s.handlePermanentRevoke)))
+
+	// Row CRUD
+	mux.Handle("POST /dashboard/{db}/{table}/insert", s.requireAuth(http.HandlerFunc(s.handleRowInsert)))
+	mux.Handle("POST /dashboard/{db}/{table}/update", s.requireAuth(http.HandlerFunc(s.handleRowUpdate)))
+	mux.Handle("POST /dashboard/{db}/{table}/delete", s.requireAuth(http.HandlerFunc(s.handleRowDelete)))
 
 	// Root
 	mux.HandleFunc("GET /", s.handleRoot)

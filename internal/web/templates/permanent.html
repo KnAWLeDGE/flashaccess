@@ -1,0 +1,123 @@
+{{define "dash_title"}}Permanent Access{{end}}
+{{define "dash_body"}}
+<div class="dash-content-header">
+  <div class="content-header-left">
+    <div class="content-header-title">Permanent Access</div>
+  </div>
+</div>
+
+{{if .Notice}}
+<div class="alert alert-ok" style="margin:16px 24px 0">{{.Notice}}</div>
+{{end}}
+{{if .Error}}
+<div class="alert alert-error" style="margin:16px 24px 0">{{.Error}}</div>
+{{end}}
+
+<div class="panel" style="margin:16px 24px">
+  <div class="panel-hd">Grant Permanent MySQL Access</div>
+  <div class="panel-bd">
+    <p class="panel-desc">
+      Creates a permanent MySQL user and optionally opens port {{.Port}} in UFW for an external IP.
+      Unlike FlashAccess session users, these persist indefinitely.
+    </p>
+    <form method="POST" action="/permanent/grant" autocomplete="off">
+      <div class="inline-form-fields">
+        <div class="field-compact">
+          <label class="field-label-sm">MySQL Username</label>
+          <input type="text" name="username" class="field-input mono field-sm" placeholder="appuser" required pattern="[a-zA-Z0-9_]{1,32}">
+        </div>
+        <div class="field-compact">
+          <label class="field-label-sm">MySQL Host / Pattern</label>
+          <input type="text" name="host" class="field-input mono field-sm" placeholder="%" value="%">
+          <div class="field-hint-sm">% = any host &nbsp;·&nbsp; 10.0.0.1 = specific IP</div>
+        </div>
+        <div class="field-compact">
+          <label class="field-label-sm">Password</label>
+          <input type="password" name="password" class="field-input mono field-sm" placeholder="min 8 chars" required minlength="8">
+        </div>
+        <div class="field-compact">
+          <label class="field-label-sm">Privileges</label>
+          <select name="privs" class="field-select field-sm">
+            <option value="all">ALL (superuser)</option>
+            <option value="readwrite">Read / Write</option>
+            <option value="read">Read only</option>
+          </select>
+        </div>
+      </div>
+      <div class="inline-form-fields" style="margin-top:12px">
+        <div class="field-compact" style="flex:2;min-width:200px">
+          <label class="field-label-sm">IP / CIDR for firewall rule <span style="color:var(--b400)">(optional)</span></label>
+          <input type="text" name="cidr" class="field-input mono field-sm" placeholder="203.0.113.42 or 203.0.113.0/24">
+          <div class="field-hint-sm">If set, permanently opens port {{.Port}} in UFW for this IP. Leave blank to rely on MySQL host auth only.</div>
+        </div>
+        <div class="field-compact" style="flex:2;min-width:200px">
+          <label class="field-label-sm">Description <span style="color:var(--b400)">(optional)</span></label>
+          <input type="text" name="description" class="field-input field-sm" placeholder="e.g. Production app server">
+        </div>
+      </div>
+      <div style="margin-top:12px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--b700)">
+          <input type="checkbox" name="open_firewall" value="1" checked>
+          Open UFW firewall rule (uncheck to manage firewall separately)
+        </label>
+      </div>
+      <div style="margin-top:14px">
+        <button type="submit" class="btn btn-primary btn-sm">Grant Permanent Access →</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{{if .Grants}}
+<div style="padding:0 24px 24px">
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>User</th>
+        <th>MySQL Host</th>
+        <th>Firewall IP/CIDR</th>
+        <th>Port</th>
+        <th>Privileges</th>
+        <th>Description</th>
+        <th>Created</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+    {{range .Grants}}
+      <tr>
+        <td class="mono">{{.DBUser}}</td>
+        <td class="mono">{{.DBHost}}</td>
+        <td class="mono">{{if .AllowedCIDR}}{{.AllowedCIDR}}{{else}}<span class="null-val">—</span>{{end}}</td>
+        <td class="mono">{{.Port}}</td>
+        <td>{{.PrivLevel}}</td>
+        <td>{{if .Description}}{{.Description}}{{else}}<span class="null-val">—</span>{{end}}</td>
+        <td class="muted">{{.CreatedAt.Format "2006-01-02"}}</td>
+        <td>
+          <form method="POST" action="/permanent/revoke" style="display:inline">
+            <input type="hidden" name="id" value="{{.ID}}">
+            <button type="button" class="btn btn-danger btn-xs" onclick="uiRevoke(this,'{{.DBUser}}','{{.DBHost}}')">Revoke</button>
+          </form>
+        </td>
+      </tr>
+    {{end}}
+    </tbody>
+  </table>
+</div>
+{{else}}
+<p class="empty-state" style="padding:16px 24px">No permanent grants yet.</p>
+{{end}}
+
+<script>
+function uiRevoke(btn, user, host) {
+  if (!FAI.needsConfirmation('user', 'ddl', -1)) {
+    btn.closest('form').submit(); return;
+  }
+  FAI.confirm('Revoke Permanent Access',
+    '<p>Revoke access for <strong class="mono">' + user + '@' + host + '</strong>?</p>' +
+    '<p>This will drop the MySQL user and close the firewall rule.</p>' +
+    '<p style="color:var(--err-text);font-weight:600">This cannot be undone.</p>'
+  ).then(function(ok) { if (ok) btn.closest('form').submit(); });
+}
+</script>
+{{end}}

@@ -3,13 +3,13 @@
 <div class="dash-content-header">
   <div class="content-header-left">
     <div class="content-breadcrumb">
-    <a href="/dashboard">Databases</a>
-    <span class="breadcrumb-sep">/</span>
-    <a href="/dashboard/{{.CurrentDB}}">{{.CurrentDB}}</a>
-    <span class="breadcrumb-sep">/</span>
-    <span>{{.Table}}</span>
-  </div>
-  <div class="content-header-title">{{.Table}}</div>
+      <a href="/dashboard">Databases</a>
+      <span class="breadcrumb-sep">/</span>
+      <a href="/dashboard/{{.CurrentDB}}">{{.CurrentDB}}</a>
+      <span class="breadcrumb-sep">/</span>
+      <span>{{.Table}}</span>
+    </div>
+    <div class="content-header-title">{{.Table}}</div>
   </div>
 </div>
 
@@ -18,6 +18,10 @@
   <a href="/dashboard/{{.CurrentDB}}/{{.Table}}/structure" class="tab-item"><span>Structure</span></a>
   <a href="/dashboard/{{.CurrentDB}}/query?sql=SELECT+*+FROM+%60{{.Table}}%60+LIMIT+50" class="tab-item"><span>Query</span></a>
 </div>
+
+{{if .Notice}}
+<div class="alert alert-ok" style="margin:12px 20px 0">{{.Notice}}</div>
+{{end}}
 
 <div class="table-toolbar">
   <span class="table-count">
@@ -32,12 +36,13 @@
         <option value="100" {{if eq .Limit 100}}selected{{end}}>100</option>
       </select>
     </form>
+    <button type="button" class="btn btn-primary btn-sm" onclick="openInsertModal()">+ Insert Row</button>
     <a href="/dashboard/{{.CurrentDB}}/query" class="btn btn-outline btn-sm">SQL Editor</a>
   </div>
 </div>
 
 {{if .Result.Err}}
-<div class="alert alert-error">{{.Result.Err}}</div>
+<div class="alert alert-error" style="margin:12px 20px">{{.Result.Err}}</div>
 {{else if .Result.Rows}}
 <div class="table-scroll">
 <table class="data-table">
@@ -46,19 +51,27 @@
       {{range .Result.Columns}}
       <th>
         <a href="?order={{.}}&dir={{if eq $.OrderBy .}}{{if eq $.OrderDir "asc"}}desc{{else}}asc{{end}}{{else}}asc{{end}}&limit={{$.Limit}}&offset={{$.Offset}}" class="sort-link">
-          {{.}}
-          {{if eq $.OrderBy .}}
-            {{if eq $.OrderDir "desc"}}↓{{else}}↑{{end}}
-          {{end}}
+          {{.}}{{if eq $.OrderBy .}} {{if eq $.OrderDir "desc"}}↓{{else}}↑{{end}}{{end}}
         </a>
       </th>
       {{end}}
+      <th style="width:110px">Actions</th>
     </tr>
   </thead>
   <tbody>
     {{range .Result.Rows}}
     <tr>
-      {{range .}}<td class="mono">{{if eq . "NULL"}}<span class="null-val">NULL</span>{{else}}{{.}}{{end}}</td>{{end}}
+      {{$row := .}}
+      {{range $row}}<td class="mono">{{if eq . "NULL"}}<span class="null-val">NULL</span>{{else}}{{.}}{{end}}</td>{{end}}
+      <td class="row-actions">
+        {{$pkVal := index $row $.PKColIdx}}
+        <button type="button" class="btn btn-secondary btn-xs" onclick="openEditModal(this)" data-pk="{{$pkVal}}" data-row='{{jsonRow $row $.Result.Columns}}'>Edit</button>
+        <form method="POST" action="/dashboard/{{$.CurrentDB}}/{{$.Table}}/delete" style="display:inline">
+          <input type="hidden" name="pk_col" value="{{$.PKCol}}">
+          <input type="hidden" name="pk_val" value="{{$pkVal}}">
+          <button type="button" class="btn btn-danger btn-xs" onclick="uiDeleteRow(this,'{{$pkVal}}')">Del</button>
+        </form>
+      </td>
     </tr>
     {{end}}
   </tbody>
@@ -72,10 +85,90 @@
   {{end}}
 </div>
 {{else}}
-<p class="empty-state">No rows returned.</p>
+<p class="empty-state">No rows. <button type="button" class="btn btn-primary btn-xs" onclick="openInsertModal()">Insert first row →</button></p>
 {{end}}
 
-<div class="result-meta">
-  Query completed in {{fmtElapsed .Result.Elapsed}}
+<div class="result-meta">Query completed in {{fmtElapsed .Result.Elapsed}}</div>
+
+<!-- Insert Modal -->
+<div class="ai-modal-overlay" id="js-insert-modal" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="ai-modal" style="width:600px;max-width:calc(100vw - 40px)">
+    <div class="ai-modal-hd">Insert Row — {{.Table}}</div>
+    <div class="ai-modal-bd" style="max-height:60vh;overflow-y:auto;padding:16px 20px">
+      <form method="POST" action="/dashboard/{{.CurrentDB}}/{{.Table}}/insert" id="js-insert-form">
+        {{range .Columns}}
+        <div class="field" style="margin-bottom:10px">
+          <label class="field-label" style="color:var(--b700)">{{.Field}} <span style="color:var(--b500);font-weight:400;text-transform:none;letter-spacing:0">{{.Type}}{{if eq .Null "NO"}} · required{{end}}</span></label>
+          {{if eq .Extra "auto_increment"}}
+          <input type="text" class="field-input" placeholder="auto" disabled style="opacity:0.5">
+          {{else}}
+          <input type="text" name="col_{{.Field}}" class="field-input" placeholder="{{if .Default.Valid}}{{.Default.String}}{{else}}NULL{{end}}">
+          {{end}}
+        </div>
+        {{end}}
+      </form>
+    </div>
+    <div class="ai-modal-ft">
+      <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('js-insert-modal').style.display='none'">Cancel</button>
+      <button type="button" class="btn btn-primary btn-sm" onclick="document.getElementById('js-insert-form').submit()">Insert Row</button>
+    </div>
+  </div>
 </div>
+
+<!-- Edit Modal -->
+<div class="ai-modal-overlay" id="js-edit-modal" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="ai-modal" style="width:600px;max-width:calc(100vw - 40px)">
+    <div class="ai-modal-hd">Edit Row — {{.Table}}</div>
+    <div class="ai-modal-bd" style="max-height:60vh;overflow-y:auto;padding:16px 20px">
+      <form method="POST" action="/dashboard/{{.CurrentDB}}/{{.Table}}/update" id="js-edit-form">
+        <input type="hidden" name="_pk_col" value="{{.PKCol}}">
+        <input type="hidden" name="_pk_val" id="js-edit-pk">
+        <div id="js-edit-fields"></div>
+      </form>
+    </div>
+    <div class="ai-modal-ft">
+      <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('js-edit-modal').style.display='none'">Cancel</button>
+      <button type="button" class="btn btn-primary btn-sm" onclick="document.getElementById('js-edit-form').submit()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var COLS = {{jsonColumns .Columns}};
+var PK   = {{printf "%q" .PKCol}};
+
+function openInsertModal() {
+  document.getElementById('js-insert-modal').style.display = '';
+}
+
+function openEditModal(btn) {
+  var row = JSON.parse(btn.getAttribute('data-row'));
+  document.getElementById('js-edit-pk').value = btn.getAttribute('data-pk');
+  var html = '';
+  COLS.forEach(function(c) {
+    var v = (row[c.field] === 'NULL' || row[c.field] == null) ? '' : row[c.field];
+    html += '<div class="field" style="margin-bottom:10px">' +
+      '<label class="field-label" style="color:var(--b700)">' + escH(c.field) +
+      ' <span style="color:var(--b500);font-weight:400;text-transform:none;letter-spacing:0">' + escH(c.type) + '</span></label>' +
+      '<input type="text" name="col_' + escH(c.field) + '" class="field-input" value="' + escH(v) + '">' +
+      '</div>';
+  });
+  document.getElementById('js-edit-fields').innerHTML = html;
+  document.getElementById('js-edit-modal').style.display = '';
+}
+
+function uiDeleteRow(btn, pkVal) {
+  if (!FAI.needsConfirmation('user', 'dml', 1)) {
+    btn.closest('form').submit(); return;
+  }
+  FAI.confirm('Delete Row',
+    '<p>Delete row where <strong class="mono">' + escH(PK) + ' = ' + escH(String(pkVal)) + '</strong>?</p>' +
+    '<p style="color:var(--err-text);font-weight:600">This cannot be undone.</p>'
+  ).then(function(ok) { if (ok) btn.closest('form').submit(); });
+}
+
+function escH(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
 {{end}}

@@ -293,6 +293,9 @@ type browseData struct {
 	OrderBy  string
 	OrderDir string
 	Pages    []pageLink
+	PKCol    string
+	PKColIdx int
+	Notice   string
 }
 
 type pageLink struct {
@@ -344,9 +347,24 @@ func (s *Server) handleBrowse(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
+	pkCol := ""
+	pkColIdx := 0
+	for i, c := range cols {
+		if c.Key == "PRI" {
+			pkCol = c.Field
+			pkColIdx = i
+			break
+		}
+	}
+	if pkCol == "" && len(cols) > 0 {
+		pkCol = cols[0].Field
+		pkColIdx = 0
+	}
+	notice := r.URL.Query().Get("notice")
 	s.renderDash(w, "browse", browseData{
 		dashBase: base, Table: table, Columns: cols, Result: result,
 		Total: total, Limit: limit, Offset: offset, OrderBy: orderBy, OrderDir: orderDir, Pages: pages,
+		PKCol: pkCol, PKColIdx: pkColIdx, Notice: notice,
 	})
 }
 
@@ -856,6 +874,93 @@ func (s *Server) handleAIExecute(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(resp)
 }
 
+
+// ── Row CRUD ──────────────────────────────────────────────────────────────
+
+func (s *Server) handleRowInsert(w http.ResponseWriter, r *http.Request) {
+	db := r.PathValue("db")
+	table := r.PathValue("table")
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad form", http.StatusBadRequest)
+		return
+	}
+	var cols, vals []string
+	for k, v := range r.Form {
+		if strings.HasPrefix(k, "col_") {
+			col := strings.TrimPrefix(k, "col_")
+			val := ""
+			if len(v) > 0 {
+				val = v[0]
+			}
+			cols = append(cols, col)
+			vals = append(vals, val)
+		}
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+	defer cancel()
+	if err := s.db.InsertRow(ctx, db, table, cols, vals); err != nil {
+		http.Error(w, "insert: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+	http.Redirect(w, r, "/dashboard/"+db+"/"+table+"?notice=Row+inserted", http.StatusSeeOther)
+}
+
+func (s *Server) handleRowUpdate(w http.ResponseWriter, r *http.Request) {
+	db := r.PathValue("db")
+	table := r.PathValue("table")
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad form", http.StatusBadRequest)
+		return
+	}
+	pkCol := r.FormValue("_pk_col")
+	pkVal := r.FormValue("_pk_val")
+	if pkCol == "" {
+		http.Error(w, "missing pk", http.StatusBadRequest)
+		return
+	}
+	var cols, vals []string
+	for k, v := range r.Form {
+		if strings.HasPrefix(k, "col_") {
+			col := strings.TrimPrefix(k, "col_")
+			val := ""
+			if len(v) > 0 {
+				val = v[0]
+			}
+			cols = append(cols, col)
+			vals = append(vals, val)
+		}
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+	defer cancel()
+	if err := s.db.UpdateRow(ctx, db, table, pkCol, pkVal, cols, vals); err != nil {
+		http.Error(w, "update: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+	http.Redirect(w, r, "/dashboard/"+db+"/"+table+"?notice=Row+updated", http.StatusSeeOther)
+}
+
+func (s *Server) handleRowDelete(w http.ResponseWriter, r *http.Request) {
+	db := r.PathValue("db")
+	table := r.PathValue("table")
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad form", http.StatusBadRequest)
+		return
+	}
+	pkCol := r.FormValue("pk_col")
+	pkVal := r.FormValue("pk_val")
+	if pkCol == "" {
+		http.Error(w, "missing pk", http.StatusBadRequest)
+		return
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+	defer cancel()
+	if err := s.db.DeleteRow(ctx, db, table, pkCol, pkVal); err != nil {
+		http.Error(w, "delete: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+	http.Redirect(w, r, "/dashboard/"+db+"/"+table+"?notice=Row+deleted", http.StatusSeeOther)
+}
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 func queryInt(s string, def int) int {
@@ -863,4 +968,97 @@ func queryInt(s string, def int) int {
 		return n
 	}
 	return def
+}
+
+// ── Permanent Access ──────────────────────────────────────────────────────
+
+type permanentPageData struct {
+	dashBase
+	Grants []*PermanentGrant
+	Error  string
+	Notice string
+	Port   int
+}
+
+func (s *Server) handlePermanentAccess(w http.ResponseWriter, r *http.Request) {
+	base, err := s.buildDashBase(r, "")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	base.Section = "permanent"
+	s.renderDash(w, "permanent", permanentPageData{
+		dashBase: base,
+		Grants:   s.ps.List(),
+		Notice:   r.URL.Query().Get("notice"),
+		Error:    r.URL.Query().Get("error"),
+		Port:     s.cfg.DB.Port,
+	})
+}
+
+func (s *Server) handlePermanentGrant(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad form", http.StatusBadRequest)
+		return
+	}
+	user := strings.TrimSpace(r.FormValue("username"))
+	host := strings.TrimSpace(r.FormValue("host"))
+	pass := strings.TrimSpace(r.FormValue("password"))
+	privLevel := r.FormValue("privs")
+	desc := strings.TrimSpace(r.FormValue("description"))
+	cidr := strings.TrimSpace(r.FormValue("cidr"))
+	openFW := r.FormValue("open_firewall") == "1"
+	if host == "" {
+		host = "%"
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+	defer cancel()
+
+	if err := s.db.CreateAdminUser(ctx, user, host, pass, privLevel); err != nil {
+		http.Redirect(w, r, "/permanent?error="+err.Error(), http.StatusSeeOther)
+		return
+	}
+
+	grant := &PermanentGrant{
+		ID: newGrantID(), DBUser: user, DBHost: host,
+		AllowedCIDR: cidr, Port: s.cfg.DB.Port,
+		PrivLevel: privLevel, Description: desc,
+		CreatedAt: time.Now(),
+	}
+
+	var fwErr string
+	if openFW && cidr != "" && s.fw != nil {
+		if err := s.fw.Allow(cidr, s.cfg.DB.Port, "permanent:"+grant.ID); err != nil {
+			fwErr = "+firewall+open+failed:+" + err.Error()
+		}
+	}
+	_ = s.ps.Add(grant)
+
+	msg := "Access+granted+for+" + user
+	if fwErr != "" {
+		msg = "User+created+but+" + fwErr
+	}
+	http.Redirect(w, r, "/permanent?notice="+msg, http.StatusSeeOther)
+}
+
+func (s *Server) handlePermanentRevoke(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad form", http.StatusBadRequest)
+		return
+	}
+	id := r.FormValue("id")
+	grant := s.ps.Get(id)
+	if grant == nil {
+		http.Redirect(w, r, "/permanent?error=grant+not+found", http.StatusSeeOther)
+		return
+	}
+	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+	defer cancel()
+	_ = s.db.DropAdminUser(ctx, grant.DBUser, grant.DBHost)
+	if grant.AllowedCIDR != "" && s.fw != nil {
+		_ = s.fw.Deny(grant.AllowedCIDR, grant.Port)
+	}
+	_ = s.ps.Remove(id)
+	http.Redirect(w, r, "/permanent?notice=Access+revoked", http.StatusSeeOther)
 }
