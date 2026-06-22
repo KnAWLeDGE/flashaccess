@@ -40,6 +40,10 @@
 
   --font: 'Inter', system-ui, sans-serif;
   --font-mono: 'Inter', monospace;
+
+  /* AI modal surface */
+  --surface: #1C1A2E;
+  --border:  #3A3460;
 }
 
 /* ── Reset ─────────────────────────────────────────────────── */
@@ -407,15 +411,15 @@ code { font-family: var(--font-mono); }
 .text-muted { color: var(--b500); }
 
 /* ── Panel ─────────────────────────────────────────────────── */
-.panel { background: var(--b0); border: 1px solid var(--b200); }
+.panel { background: var(--b0); border: 1px solid var(--b200); border-radius: 4px; overflow: hidden; }
 .panel-hd {
   background: var(--b900); color: var(--b100);
-  padding: 8px 16px 8px 20px; font-size: 10px; font-weight: 600;
-  letter-spacing: 0.1em; text-transform: uppercase;
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%);
+  padding: 10px 16px 10px 20px; font-size: 11px; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase;
   position: relative;
 }
 .panel-hd::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--g500); }
+.panel-bd { padding: 16px; }
 
 /* ── Key badges (PRI, UNI, MUL) ───────────────────────────── */
 .key-badge {
@@ -514,12 +518,12 @@ code { font-family: var(--font-mono); }
 .sidebar-divider { height: 1px; background: var(--b800); margin: 12px 0; }
 .sidebar-tool-link {
   display: flex; align-items: center; gap: 8px;
-  padding: 6px 16px; color: var(--b300); font-size: 12px;
+  padding: 6px 16px; color: var(--b600); font-size: 12px;
   text-decoration: none; transition: background 0.12s, color 0.12s;
 }
-.sidebar-tool-link:hover { background: var(--b800); color: var(--b100); }
-.sidebar-tool-link.active { background: var(--g800); color: var(--g300); }
-.tool-icon { font-size: 11px; opacity: 0.6; }
+.sidebar-tool-link:hover { background: var(--b200); color: var(--b900); }
+.sidebar-tool-link.active { background: var(--g100); color: var(--g700); font-weight: 600; }
+.tool-icon { font-size: 11px; opacity: 0.7; }
 
 .sidebar-action-btn {
   display: block; width: 100%; text-align: left;
@@ -555,7 +559,7 @@ code { font-family: var(--font-mono); }
 }
 .stat-gauge-wrap { display: flex; align-items: center; gap: 10px; }
 .stat-gauge-bar {
-  flex: 1; height: 8px; background: var(--b200); border-radius: 4px; overflow: hidden;
+  flex: 1; height: 10px; background: var(--b300); border-radius: 4px; overflow: hidden;
 }
 .stat-gauge-fill {
   height: 100%; background: var(--g600); border-radius: 4px;
@@ -568,14 +572,7 @@ code { font-family: var(--font-mono); }
 .stat-big-value { font-size: 28px; font-weight: 300; color: var(--b800); margin-top: 4px; }
 .stats-refresh-label { font-size: 11px; color: var(--b500); }
 
-/* ── Panel (users create form) ──────────────────────────────── */
-.panel { background: var(--b0); border: 1px solid var(--b200); border-radius: 4px; }
-.panel-hd {
-  padding: 10px 16px; font-size: 11px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.08em;
-  color: var(--b600); border-bottom: 1px solid var(--b200);
-}
-.panel-bd { padding: 16px; }
+/* ── Inline form helpers ─────────────────────────────────────── */
 
 .inline-form-fields {
   display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start;
@@ -723,13 +720,15 @@ code { font-family: var(--font-mono); }
 
 /* ── AI settings page ────────────────────────────────────────── */
 .ai-settings-panel .panel-bd { padding: 20px; }
-.ai-settings-panel .panel-hd { padding: 12px 20px; }
-.panel-desc { color: var(--b400); font-size: 12px; margin: 0 0 16px; line-height: 1.5; }
+.ai-settings-panel .panel-hd { padding: 12px 20px 12px 20px; }
+.ai-settings-panel .field-label { color: var(--b700); }
+.ai-settings-panel .field-hint  { color: var(--b600); }
+.panel-desc { color: var(--b600); font-size: 12px; margin: 0 0 16px; line-height: 1.5; }
 .radio-group { display: flex; flex-direction: column; gap: 10px; }
 .radio-option { display: flex; align-items: flex-start; gap: 8px; cursor: pointer; }
 .radio-option input[type="radio"] { margin-top: 2px; flex-shrink: 0; }
-.radio-label { font-size: 13px; color: var(--b200); line-height: 1.4; }
-.radio-label em { color: var(--b400); }
+.radio-label { font-size: 13px; color: var(--b800); line-height: 1.4; }
+.radio-label em { color: var(--b500); }
 
 /* ── Monospace font ─────────────────────────────────────────── */
 :root {
@@ -869,3 +868,4 @@ code { font-family: var(--font-mono); }
   font-style: italic;
 }
 .preview-error { color: var(--err-text); font-size: 12px; }
+                                                                                           
