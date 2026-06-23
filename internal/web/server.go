@@ -63,6 +63,7 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("GET /dashboard/{db}/{table}/structure", s.requireAuth(http.HandlerFunc(s.handleStructure)))
 	mux.Handle("GET /dashboard/{db}/query", s.requireAuth(http.HandlerFunc(s.handleQuery)))
 	mux.Handle("POST /dashboard/{db}/query", s.requireAuth(http.HandlerFunc(s.handleQuery)))
+	mux.Handle("POST /dashboard/{db}/upload", s.requireAuth(http.HandlerFunc(s.handleUploadSQL)))
 
 	// Stats
 	mux.Handle("GET /stats", s.requireAuth(http.HandlerFunc(s.handleStats)))

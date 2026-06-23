@@ -56,9 +56,13 @@ func (m *Manager) CreateAdminUser(ctx context.Context, user, host, password, pri
 	if !hostPattern.MatchString(host) {
 		return fmt.Errorf("invalid host pattern %q", host)
 	}
-	if !safePassword(password) || len(password) < 8 {
-		return fmt.Errorf("password must be at least 8 alphanumeric characters")
+	if len(password) < 8 {
+		return fmt.Errorf("password must be at least 8 characters")
 	}
+
+	// Escape backslashes and single quotes for safe inline SQL.
+	escapedPw := strings.ReplaceAll(password, `\`, `\\`)
+	escapedPw = strings.ReplaceAll(escapedPw, `'`, `\'`)
 
 	var grantSQL string
 	switch privLevel {
@@ -74,7 +78,7 @@ func (m *Manager) CreateAdminUser(ctx context.Context, user, host, password, pri
 	defer cancel()
 
 	stmts := []string{
-		fmt.Sprintf("CREATE USER '%s'@'%s' IDENTIFIED BY '%s'", user, host, password),
+		fmt.Sprintf("CREATE USER '%s'@'%s' IDENTIFIED BY '%s'", user, host, escapedPw),
 		grantSQL,
 		"FLUSH PRIVILEGES",
 	}

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"strconv"
@@ -404,8 +405,9 @@ func (s *Server) handleStructure(w http.ResponseWriter, r *http.Request) {
 
 type queryData struct {
 	dashBase
-	SQL    string
-	Result *mysql.QueryResult
+	SQL          string
+	Result       *mysql.QueryResult
+	ScriptResult *mysql.ScriptResult
 }
 
 func (s *Server) handleQuery(w http.ResponseWriter, r *http.Request) {
@@ -428,10 +430,51 @@ func (s *Server) handleQuery(w http.ResponseWriter, r *http.Request) {
 		s.renderDash(w, "query", queryData{dashBase: base})
 		return
 	}
-	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
 	defer cancel()
+
+	// If the SQL contains multiple statements, run as a script.
+	stmts := mysql.SplitStatements(sql)
+	if len(stmts) > 1 {
+		sr := s.db.RunScript(ctx, db, sql, false)
+		s.renderDash(w, "query", queryData{dashBase: base, SQL: sql, ScriptResult: sr})
+		return
+	}
 	result := s.db.RunUserQuery(ctx, db, sql)
-	s.renderDash(w, "query", queryData{base, sql, result})
+	s.renderDash(w, "query", queryData{dashBase: base, SQL: sql, Result: result})
+}
+
+// handleUploadSQL accepts a .sql file, strips server-level statements, and runs the rest.
+func (s *Server) handleUploadSQL(w http.ResponseWriter, r *http.Request) {
+	db := r.PathValue("db")
+	if err := r.ParseMultipartForm(8 << 20); err != nil {
+		http.Error(w, "parse form: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+	f, _, err := r.FormFile("sqlfile")
+	if err != nil {
+		http.Error(w, "no file: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+	defer f.Close()
+
+	buf := new(strings.Builder)
+	if _, err := io.Copy(buf, f); err != nil {
+		http.Error(w, "read file: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	base, err := s.buildDashBase(r, db)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Minute)
+	defer cancel()
+
+	sr := s.db.RunScript(ctx, db, buf.String(), true /* skip CREATE/DROP DATABASE, USE */)
+	s.renderDash(w, "query", queryData{dashBase: base, ScriptResult: sr})
 }
 
 // ── Stats ──────────────────────────────────────────────────────────────────

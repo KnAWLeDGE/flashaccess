@@ -499,3 +499,153 @@ func (m *Manager) DeleteRow(ctx context.Context, db, table, pkCol, pkVal string)
 	_, err := m.db.ExecContext(ctx, q, pkVal)
 	return err
 }
+
+// ── SQL script helpers ────────────────────────────────────────────────────
+
+// ScriptResult summarises execution of a multi-statement SQL script.
+type ScriptResult struct {
+	Total    int
+	Executed int
+	Skipped  int
+	Failed   int
+	Errors   []string
+	Elapsed  time.Duration
+}
+
+// SplitStatements splits a SQL script into individual statements,
+// respecting single-quoted strings, double-quoted identifiers, and
+// both line (--) and block (/* */) comments.
+func SplitStatements(script string) []string {
+	var stmts []string
+	var cur strings.Builder
+	inSingle, inDouble, inLine, inBlock := false, false, false, false
+
+	runes := []rune(script)
+	n := len(runes)
+	peek := func(i int) rune {
+		if i+1 < n {
+			return runes[i+1]
+		}
+		return 0
+	}
+
+	for i := 0; i < n; i++ {
+		c := runes[i]
+
+		if inLine {
+			if c == '\n' {
+				inLine = false
+				cur.WriteRune(c)
+			}
+			continue
+		}
+		if inBlock {
+			if c == '*' && peek(i) == '/' {
+				inBlock = false
+				i++
+			}
+			continue
+		}
+		if !inSingle && !inDouble {
+			if c == '-' && peek(i) == '-' {
+				inLine = true
+				i++
+				continue
+			}
+			if c == '/' && peek(i) == '*' {
+				inBlock = true
+				i++
+				continue
+			}
+		}
+		if c == '\'' && !inDouble {
+			// Handle escaped '' inside single-quoted strings
+			if inSingle && peek(i) == '\'' {
+				cur.WriteRune(c)
+				i++
+				cur.WriteRune(runes[i])
+				continue
+			}
+			inSingle = !inSingle
+		} else if c == '"' && !inSingle {
+			inDouble = !inDouble
+		} else if c == '\\' && (inSingle || inDouble) && i+1 < n {
+			cur.WriteRune(c)
+			i++
+			cur.WriteRune(runes[i])
+			continue
+		}
+
+		if c == ';' && !inSingle && !inDouble {
+			if stmt := strings.TrimSpace(cur.String()); stmt != "" {
+				stmts = append(stmts, stmt)
+			}
+			cur.Reset()
+			continue
+		}
+		cur.WriteRune(c)
+	}
+	if stmt := strings.TrimSpace(cur.String()); stmt != "" {
+		stmts = append(stmts, stmt)
+	}
+	return stmts
+}
+
+// skipStatement returns true for statements that should be silently skipped
+// when running an uploaded SQL file (schema-management statements that target
+// the server level rather than a specific database).
+func skipStatement(sql string) bool {
+	u := strings.ToUpper(strings.TrimSpace(sql))
+	return strings.HasPrefix(u, "CREATE DATABASE") ||
+		strings.HasPrefix(u, "DROP DATABASE") ||
+		strings.HasPrefix(u, "USE ")
+}
+
+// RunScript splits script into statements, optionally skipping server-level
+// statements, and executes each one on dbName. All errors are collected;
+// execution continues even after failures.
+func (m *Manager) RunScript(ctx context.Context, dbName, script string, skipServerLevel bool) *ScriptResult {
+	start := time.Now()
+	stmts := SplitStatements(script)
+	res := &ScriptResult{Total: len(stmts)}
+
+	conn, err := m.db.Conn(ctx)
+	if err != nil {
+		res.Errors = append(res.Errors, "connect: "+err.Error())
+		res.Failed = len(stmts)
+		res.Elapsed = time.Since(start)
+		return res
+	}
+	defer conn.Close()
+
+	if dbName != "" {
+		if _, err := conn.ExecContext(ctx,
+			fmt.Sprintf("USE `%s`", escIdent(dbName))); err != nil {
+			res.Errors = append(res.Errors, "USE "+dbName+": "+err.Error())
+			res.Failed = len(stmts)
+			res.Elapsed = time.Since(start)
+			return res
+		}
+	}
+
+	for idx, stmt := range stmts {
+		if skipServerLevel && skipStatement(stmt) {
+			res.Skipped++
+			continue
+		}
+		if _, err := conn.ExecContext(ctx, stmt); err != nil {
+			res.Failed++
+			// Trim long statements in the error message for readability
+			preview := stmt
+			if len(preview) > 120 {
+				preview = preview[:120] + "…"
+			}
+			res.Errors = append(res.Errors,
+				fmt.Sprintf("statement %d: %v\n  ↳ %s", idx+1, err, preview))
+		} else {
+			res.Executed++
+		}
+	}
+	res.Elapsed = time.Since(start)
+	return res
+}

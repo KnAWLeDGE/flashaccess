@@ -3,13 +3,13 @@
 <div class="dash-content-header">
   <div class="content-header-left">
     <div class="content-breadcrumb">
-    <a href="/dashboard">Databases</a>
-    <span class="breadcrumb-sep">/</span>
-    <a href="/dashboard/{{.CurrentDB}}">{{.CurrentDB}}</a>
-    <span class="breadcrumb-sep">/</span>
-    <span>SQL Query</span>
-  </div>
-  <div class="content-header-title">SQL Editor</div>
+      <a href="/dashboard">Databases</a>
+      <span class="breadcrumb-sep">/</span>
+      <a href="/dashboard/{{.CurrentDB}}">{{.CurrentDB}}</a>
+      <span class="breadcrumb-sep">/</span>
+      <span>SQL Query</span>
+    </div>
+    <div class="content-header-title">SQL Editor</div>
   </div>
 </div>
 
@@ -33,13 +33,47 @@
         <button type="button" class="btn btn-primary btn-sm" id="js-run-btn" onclick="runQuery()">Run Query &#8594;</button>
       </div>
     </div>
-    <textarea id="js-sql" name="sql" class="sql-editor" rows="8" placeholder="SELECT * FROM users LIMIT 100;" spellcheck="false">{{.SQL}}</textarea>
+    <textarea id="js-sql" name="sql" class="sql-editor" rows="10" placeholder="SELECT * FROM users LIMIT 100;
+
+-- Multi-statement scripts are supported:
+-- CREATE TABLE foo (...);
+-- INSERT INTO foo VALUES (...);" spellcheck="false">{{.SQL}}</textarea>
   </form>
 </div>
 
+<!-- SQL file upload -->
+<details class="sql-upload-details">
+  <summary class="sql-upload-summary">&#8593; Import .sql file</summary>
+  <div class="sql-upload-body">
+    <form method="POST" action="/dashboard/{{.CurrentDB}}/upload" enctype="multipart/form-data" class="sql-upload-form">
+      <input type="file" name="sqlfile" accept=".sql,.txt" class="field-input sql-upload-input" required>
+      <button type="submit" class="btn btn-primary btn-sm">Run File →</button>
+    </form>
+    <p class="sql-upload-hint">Runs every statement in the file against <strong>{{.CurrentDB}}</strong>. <code>CREATE DATABASE</code>, <code>DROP DATABASE</code>, and <code>USE</code> statements are automatically skipped.</p>
+  </div>
+</details>
+
 <div id="js-preview-panel" class="query-preview-panel" style="display:none"></div>
 
-{{if .Result}}
+{{if .ScriptResult}}
+  {{$sr := .ScriptResult}}
+  <div class="script-result {{if $sr.Failed}}script-result-err{{else}}script-result-ok{{end}}">
+    <div class="script-result-summary">
+      {{if $sr.Failed}}
+        ✗ {{$sr.Failed}} of {{$sr.Total}} statements failed
+      {{else}}
+        ✓ {{$sr.Executed}} statement{{if ne $sr.Executed 1}}s{{end}} executed
+      {{end}}
+      {{if $sr.Skipped}} · {{$sr.Skipped}} skipped{{end}}
+      · {{fmtElapsed $sr.Elapsed}}
+    </div>
+    {{if $sr.Errors}}
+    <ul class="script-error-list">
+      {{range $sr.Errors}}<li>{{.}}</li>{{end}}
+    </ul>
+    {{end}}
+  </div>
+{{else if .Result}}
   {{if .Result.Err}}
   <div class="alert alert-error query-result-error">
     <strong>Query Error</strong><br>{{.Result.Err}}
@@ -92,7 +126,7 @@ function runQuery() {
   FAI.confirm(
     'Run Query',
     '<p>You are about to execute a write operation.</p>' +
-    '<pre class="ai-sql ai-confirm-sql">' + escHtml(sql) + '</pre>'
+    '<pre class="ai-sql ai-confirm-sql" style="max-height:40vh;overflow:auto">' + escHtml(sql) + '</pre>'
   ).then(function(ok) { if (ok) document.getElementById('js-query-form').submit(); });
 }
 
@@ -103,9 +137,7 @@ function clearEditor() {
 }
 
 document.addEventListener('keydown', function(e) {
-  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-    document.getElementById('js-query-form').submit();
-  }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { runQuery(); }
 });
 
 var _previewKind = 'other';
@@ -140,26 +172,19 @@ function previewQuery(db) {
 function renderPreview(p, panel) {
   _previewKind = p.Kind || 'other';
   _previewRows = p.EstimatedRows || -1;
-
   if (p.ErrStr) {
     panel.innerHTML = '<div class="preview-error">Preview error: ' + escHtml(p.ErrStr) + '</div>';
     panel.style.display = '';
     return;
   }
-
   var labels = { select: 'SELECT', dml: 'Write operation', ddl: 'Schema change', other: 'Statement' };
-  var kindLabel = labels[p.Kind] || p.Kind;
-  var html = '<div class="preview-header"><span class="preview-kind preview-kind-' + p.Kind + '">' + kindLabel + '</span>';
+  var html = '<div class="preview-header"><span class="preview-kind preview-kind-' + p.Kind + '">' + (labels[p.Kind]||p.Kind) + '</span>';
   if (p.EstimatedRows > 0) {
     html += '<span class="preview-rows">~' + p.EstimatedRows + ' row' + (p.EstimatedRows !== 1 ? 's' : '') + ' affected</span>';
   }
   html += '</div>';
-
-  if (p.Warning) {
-    html += '<div class="preview-warning">⚠ ' + escHtml(p.Warning) + '</div>';
-  }
-
-  if (p.SampleCols && p.SampleCols.length > 0 && p.SampleRows && p.SampleRows.length > 0) {
+  if (p.Warning) html += '<div class="preview-warning">⚠ ' + escHtml(p.Warning) + '</div>';
+  if (p.SampleCols && p.SampleCols.length && p.SampleRows && p.SampleRows.length) {
     html += '<div class="preview-sample-label">Rows that would be affected (sample of up to 5):</div>';
     html += '<div class="table-scroll"><table class="data-table preview-table"><thead><tr>';
     p.SampleCols.forEach(function(c) { html += '<th>' + escHtml(c) + '</th>'; });
@@ -167,22 +192,19 @@ function renderPreview(p, panel) {
     p.SampleRows.forEach(function(row) {
       html += '<tr>';
       row.forEach(function(cell) {
-        html += cell === 'NULL'
-          ? '<td class="mono"><span class="null-val">NULL</span></td>'
-          : '<td class="mono">' + escHtml(cell) + '</td>';
+        html += cell === 'NULL' ? '<td class="mono"><span class="null-val">NULL</span></td>'
+                                : '<td class="mono">' + escHtml(cell) + '</td>';
       });
       html += '</tr>';
     });
     html += '</tbody></table></div>';
   }
-
   if (p.Kind === 'dml' || p.Kind === 'ddl') {
     html += '<div class="preview-actions">' +
       '<button class="btn btn-danger btn-sm" onclick="confirmAndRun()">Apply Anyway →</button>' +
       '<span class="preview-actions-note">Review carefully — this operation may be irreversible.</span>' +
       '</div>';
   }
-
   panel.innerHTML = html;
   panel.style.display = '';
 }
@@ -195,10 +217,8 @@ function confirmAndRun() {
   FAI.confirm(
     'Apply Query',
     '<p>You are about to execute a write operation. This action may be irreversible.</p>' +
-    '<pre class="ai-sql ai-confirm-sql">' + escHtml(document.getElementById('js-sql').value) + '</pre>'
-  ).then(function(ok) {
-    if (ok) document.getElementById('js-query-form').submit();
-  });
+    '<pre class="ai-sql ai-confirm-sql" style="max-height:40vh;overflow:auto">' + escHtml(document.getElementById('js-sql').value) + '</pre>'
+  ).then(function(ok) { if (ok) document.getElementById('js-query-form').submit(); });
 }
 
 function escHtml(s) {

@@ -4,10 +4,11 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"net"
+	"sort"
 	"sync"
 	"time"
-	"fmt"
 )
 
 const (
@@ -183,6 +184,21 @@ func (m *Manager) Get(id string) (*Session, bool) {
 	defer m.mu.RUnlock()
 	s, ok := m.sessions[id]
 	return s, ok
+}
+
+// List returns a snapshot of all sessions sorted by creation time (newest first).
+func (m *Manager) List() []*Session {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	out := make([]*Session, 0, len(m.sessions))
+	for _, s := range m.sessions {
+		cp := *s
+		out = append(out, &cp)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		return out[i].CreatedAt.After(out[j].CreatedAt)
+	})
+	return out
 }
 
 // SetPlaygroundDB records the playground database name for the active session.

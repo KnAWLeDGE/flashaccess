@@ -316,6 +316,32 @@ func cmdSession(mgr *session.Manager, cfg *config.Config, args []string) {
 		}
 		fmt.Println("Session ended.")
 
+	case "list":
+		sessions := mgr.List()
+		if len(sessions) == 0 {
+			fmt.Println("No sessions.")
+			return
+		}
+		now := time.Now()
+		fmt.Printf("%-12s  %-8s  %-22s  %-22s  %-16s  %s\n",
+			"ID", "STATUS", "CREATED", "EXPIRES", "CIDR", "DB USER")
+		fmt.Println(strings.Repeat("-", 100))
+		for _, s := range sessions {
+			remaining := ""
+			if s.Status == "active" && now.Before(s.ExpiresAt) {
+				rem := s.ExpiresAt.Sub(now).Round(time.Second)
+				remaining = fmt.Sprintf(" (%s left)", rem)
+			}
+			fmt.Printf("%-12s  %-8s  %-22s  %-22s  %-16s  %s\n",
+				s.ID,
+				string(s.Status),
+				s.CreatedAt.Format("2006-01-02 15:04:05"),
+				s.ExpiresAt.Format("2006-01-02 15:04:05")+remaining,
+				s.AllowedCIDR,
+				s.DBUser,
+			)
+		}
+
 	default:
 		fatal(fmt.Errorf("unknown session subcommand: %s", args[0]))
 	}
@@ -350,6 +376,7 @@ Usage:
   flashaccess serve             Start the web dashboard
   flashaccess mode <mode>       Get or set operation mode (strict|unrestricted)
   flashaccess session new       Create a new session (CLI)
+  flashaccess session list      List all sessions and their status
   flashaccess session end <id>  End a session (CLI)
   flashaccess version           Print version
 
